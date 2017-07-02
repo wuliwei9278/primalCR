@@ -31,14 +31,32 @@ void save_mat_t(mat_t A, FILE *fp, bool row_major = true);
 mat_t load_mat_t(FILE *fp, bool row_major = true);
 void initial(mat_t &X, long n, long k);
 void initial_col(mat_t &X, long k, long n);
+
+// vector product
 double dot(const vec_t &a, const vec_t &b);
+
+// product of i-th column of matrix W and j-th column of matrix H
 double dot(const mat_t &W, const int i, const mat_t &H, const int j);
+
+// product of i-th column of matrix W and vector
 double dot(const mat_t &W, const int i, const vec_t &H_j);
+
+// l2-norm of a vector
 double norm(const vec_t &a);
+
+// Frobenious norm of a matrix
 double norm(const mat_t &M);
+
+// calculate squared loss (not useful for primalCR)
 double calloss(const smat_t &R, const mat_t &W, const mat_t &H);
+
+// caculate objective for Matrix Factorization Approach
 double calobj(const smat_t &R, const mat_t &W, const mat_t &H, const double lambda, bool iscol=false);
 
+// TODO(liwei): write new obj for primalCR++
+
+
+// caculate RMSE with different input format
 double calrmse(testset_t &testset, const mat_t &W, const mat_t &H, bool iscol=false);
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &H_t);
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht, vec_t &oldWt, vec_t &oldHt);
