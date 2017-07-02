@@ -1,6 +1,7 @@
 #include "util.h"
 #include "pmf.h"
 #include <cstring>
+#include <iostream>
 
 bool with_weights;
 
@@ -169,6 +170,51 @@ void run_ccdr1(parameter &param, const char* input_file_name, const char* model_
 	return ;
 }
 
+void run_pcr(parameter &param, const char* input_file_name, const char* model_file_name=NULL){
+	smat_t R;
+	testset_t T;
+	mat_t W, H;
+	FILE *model_fp = NULL;
+	if(model_file_name) {
+        model_fp = fopen(model_file_name, "wb");
+        if(model_fp == NULL)
+        {
+            fprintf(stderr,"can't open output file %s\n",model_file_name);
+            exit(1);
+        }
+    }
+	
+	load(input_file_name, R, T, false);
+	initial_col(W, param.k, R.rows);
+	initial_col(H, param.k, R.cols);
+	cout << "the rank is " << param.k << endl;
+	cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
+	return;
+}
+
+
+void run_pcrpp(parameter &param, const char* input_file_name, const char* model_file_name=NULL){
+    smat_t R;
+    testset_t T;
+    mat_t W, H;
+    FILE *model_fp = NULL;
+    if(model_file_name) {
+        model_fp = fopen(model_file_name, "wb");
+        if(model_fp == NULL)
+        {
+            fprintf(stderr,"can't open output file %s\n",model_file_name);
+            exit(1);
+        }
+    }
+
+    load(input_file_name, R, T, false);
+    initial_col(W, param.k, R.rows);
+    initial_col(H, param.k, R.cols);
+    cout << "the rank is " << param.k << endl;
+    cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
+    return;
+}
+
 int main(int argc, char* argv[]){
 	char input_file_name[1024];
 	char model_file_name[1024];
@@ -177,6 +223,12 @@ int main(int argc, char* argv[]){
 	switch (param.solver_type){
 		case CCDR1:
 			run_ccdr1(param, input_file_name, model_file_name);
+			break;
+		case PCR:
+			run_pcr(param, input_file_name, model_file_name);
+			break;
+		case PCRPP:
+			run_pcrpp(param, input_file_name, model_file_name);
 			break;
 		default:
 			fprintf(stderr, "Error: wrong solver type (%d)!\n", param.solver_type);

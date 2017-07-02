@@ -3,7 +3,7 @@
 
 #include "util.h"
 
-enum {CCDR1};
+enum {CCDR1, PCR, PCRPP};
 enum {BOLDDRIVER, EXPDECAY};
 
 class parameter {
