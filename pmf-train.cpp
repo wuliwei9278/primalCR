@@ -187,8 +187,11 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 	// param.k for rank (r in julia)
 	// param.lambda (lambda in julia)
 	// param.stepsize, param.ndcg_k, ...
+	
 
+	// k by n
 	initial(U, X.rows, param.k);
+	cout << U.size() << " and " << U[0].size() << endl;
 	initial(V, X.cols, param.k);
 	cout << "the rank is " << param.k << endl;
 	cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;

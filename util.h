@@ -28,6 +28,8 @@ class testset_t;
 typedef vector<double> vec_t;
 typedef vector<vec_t> mat_t;
 class SparseMat;
+
+
 void load(const char* srcdir, smat_t &R, testset_t &T, bool with_weights = false);
 void save_mat_t(mat_t A, FILE *fp, bool row_major = true);
 mat_t load_mat_t(FILE *fp, bool row_major = true);
@@ -35,7 +37,11 @@ void initial(mat_t &X, long n, long k);
 
 // implement smat class myself (liwei)
 SparseMat* convert(smat_t &R);
-// initialize a k by n matrix by sampling a double precision floating point value in [0.0,1.0], from <cstdlib>
+mat_t copy_mat_t(mat_t& V, double lambda);
+void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g);
+
+
+
 void initial_col(mat_t &X, long k, long n);
 
 // vector product

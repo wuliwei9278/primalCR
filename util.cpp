@@ -207,7 +207,7 @@ double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht, vec_t &oldWt, vec_t 
 
 
 // In d1 by d2 matrix R, where d1 is number of users and d2 is number of movies 
-SparseMat* convert(smat_t &R){
+SparseMat* convert(smat_t &R) {
     long d1 = R.rows;
     long d2 = R.cols;
     long nnz = R.nnz;
@@ -217,7 +217,6 @@ SparseMat* convert(smat_t &R){
 	// transpose to get the same format as X
     R = R.transpose();
 	long cc = 0;
-	cout << cc << endl;
     for (long j = 0; j < d1; ++j){
         (*X).index[j] = cc;
         for (long idx = R.col_ptr[j]; idx < R.col_ptr[j + 1]; ++idx){
@@ -236,5 +235,30 @@ SparseMat* convert(smat_t &R){
     R.clear_space();
 	cout << "will return from convert " << (*X).nnz << endl;
     return X;
+}
+
+// implement a function to calculate lambda * matrix
+// returns a matrix
+
+mat_t copy_mat_t(mat_t& V, double lambda=1.0) {
+	long d1 = static_cast<long>(V.size());
+	int r = static_cast<int>(V[0].size());
+	mat_t g(d1, vec_t(r));
+	for (long i = 0; i < d1; ++i) {
+		for (int j = 0; j < r; ++j) {
+			g[i][j] = V[i][j] * lambda;
+		}
+	}
+	return g;
+}
+
+// implement a function to update j-th row of matrix by adding some constant * i-th row of another matrix, both matrix of type mat_t
+// we want g[j,:] += c * U[i,:]
+void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g) {
+	long r = static_cast<long>(g[0].size());
+	for (long k = 0; k < r; ++k) {
+		g[j][k] += c * U[i][k];
+	}
+	return;
 }
 
