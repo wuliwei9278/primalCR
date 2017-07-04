@@ -188,8 +188,8 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 	// param.lambda (lambda in julia)
 	// param.stepsize, param.ndcg_k, ...
 
-	initial_col(U, param.k, X.rows);
-	initial_col(V, param.k, X.cols);
+	initial(U, X.rows, param.k);
+	initial(V, X.cols, param.k);
 	cout << "the rank is " << param.k << endl;
 	cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;
 	cout << X.nnz << endl;	
@@ -224,8 +224,8 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
     }
 
     load(input_file_name, R, T, false);
-    initial_col(W, param.k, R.rows);
-    initial_col(H, param.k, R.cols);
+    initial(W, R.rows, param.k);
+    initial(H, R.cols, param.k);
     cout << "the rank is " << param.k << endl;
     cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
     cout << R.nnz << endl;

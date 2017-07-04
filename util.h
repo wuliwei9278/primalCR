@@ -368,7 +368,10 @@ class SparseMat{
         long *cols;
         long *rows;
         SparseMat(long d1, long d2, long nnz){
-            vals = new double[nnz];
+            this->d1 = d1;
+			this->d2 = d2;
+			this->nnz = nnz;
+			vals = new double[nnz];
             index = new long[d1 + 1];
             cols = new long[nnz];
             rows = new long[nnz];

@@ -211,17 +211,18 @@ SparseMat* convert(smat_t &R){
     long d1 = R.rows;
     long d2 = R.cols;
     long nnz = R.nnz;
+	cout << "right before X is created" << endl;
     SparseMat *X = new SparseMat(d1, d2, nnz);
-    // transpose to get the same format as X
-    smat_t RR = R.transpose();
-    R.clear_space();
+    cout << "X is created: users " << (*X).d1 << ",items " << (*X).d2 << ",nnz "<<(*X).nnz << endl;
+	// transpose to get the same format as X
     long cc = 0;
-    for (long j = 0; j < d1; ++j){
+	cout << cc << endl;
+    for (long j = 0; j < d2; ++j){
         (*X).index[j] = cc;
-        for (long idx = RR.col_ptr[j]; idx < RR.col_ptr[j + 1]; ++idx){
-            (*X).vals[cc] = RR.val[idx];
-            (*X).cols[cc] = j;
-            (*X).rows[cc] = static_cast<long>(RR.row_idx[idx]);
+        for (long idx = R.col_ptr[j]; idx < R.col_ptr[j + 1]; ++idx){
+            (*X).vals[cc] = R.val[idx];
+            (*X).rows[cc] = j;
+            (*X).cols[cc] = static_cast<long>(R.row_idx[idx]);
             cc++;
         }
     }
@@ -231,7 +232,8 @@ SparseMat* convert(smat_t &R){
         cout << "something is wrong with convert function" << endl;
     }
     (*X).index[d1] = nnz; // use vals[index[i]:index[i+1]-1] to access i-th user
-    RR.clear_space();
+    R.clear_space();
+	cout << "will return from convert " << (*X).nnz << endl;
     return X;
 }
 
