@@ -215,14 +215,15 @@ SparseMat* convert(smat_t &R){
     SparseMat *X = new SparseMat(d1, d2, nnz);
     cout << "X is created: users " << (*X).d1 << ",items " << (*X).d2 << ",nnz "<<(*X).nnz << endl;
 	// transpose to get the same format as X
-    long cc = 0;
+    R = R.transpose();
+	long cc = 0;
 	cout << cc << endl;
-    for (long j = 0; j < d2; ++j){
+    for (long j = 0; j < d1; ++j){
         (*X).index[j] = cc;
         for (long idx = R.col_ptr[j]; idx < R.col_ptr[j + 1]; ++idx){
             (*X).vals[cc] = R.val[idx];
-            (*X).rows[cc] = j;
-            (*X).cols[cc] = static_cast<long>(R.row_idx[idx]);
+            (*X).cols[cc] = j;
+            (*X).rows[cc] = static_cast<long>(R.row_idx[idx]);
             cc++;
         }
     }
