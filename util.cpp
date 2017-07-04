@@ -206,3 +206,32 @@ double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht, vec_t &oldWt, vec_t 
 }
 
 
+// In d1 by d2 matrix R, where d1 is number of users and d2 is number of movies 
+SparseMat* convert(smat_t &R){
+    long d1 = R.rows;
+    long d2 = R.cols;
+    long nnz = R.nnz;
+    SparseMat *X = new SparseMat(d1, d2, nnz);
+    // transpose to get the same format as X
+    smat_t RR = R.transpose();
+    R.clear_space();
+    long cc = 0;
+    for (long j = 0; j < d1; ++j){
+        (*X).index[j] = cc;
+        for (long idx = RR.col_ptr[j]; idx < RR.col_ptr[j + 1]; ++idx){
+            (*X).vals[cc] = RR.val[idx];
+            (*X).cols[cc] = j;
+            (*X).rows[cc] = static_cast<long>(RR.row_idx[idx]);
+            cc++;
+        }
+    }
+    if (cc == nnz){
+        cout << "cc is correct in convert function" << endl;
+    } else{
+        cout << "something is wrong with convert function" << endl;
+    }
+    (*X).index[d1] = nnz; // use vals[index[i]:index[i+1]-1] to access i-th user
+    RR.clear_space();
+    return X;
+}
+

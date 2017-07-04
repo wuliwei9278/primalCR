@@ -1,6 +1,7 @@
 #ifndef MATUTIL
 #define MATUTIL
 #include <iostream>
+#include <new>  // use new[] in C++, don't use MALLOC
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -26,10 +27,15 @@ class smat_t;
 class testset_t;
 typedef vector<double> vec_t;
 typedef vector<vec_t> mat_t;
+class SparseMat;
 void load(const char* srcdir, smat_t &R, testset_t &T, bool with_weights = false);
 void save_mat_t(mat_t A, FILE *fp, bool row_major = true);
 mat_t load_mat_t(FILE *fp, bool row_major = true);
 void initial(mat_t &X, long n, long k);
+
+// implement smat class myself (liwei)
+SparseMat* convert(smat_t &R);
+// initialize a k by n matrix by sampling a double precision floating point value in [0.0,1.0], from <cstdlib>
 void initial_col(mat_t &X, long k, long n);
 
 // vector product
@@ -117,7 +123,8 @@ class SparseComp {
 		}
 };
 
-// Sparse matrix format CCS & RCS
+
+
 // Access column fomat only when you use it..
 class smat_t{
 	public:
@@ -350,4 +357,27 @@ class testset_t{
 	}
 };
 
+
+// smat is d2 by d1 sparse matrix, where d1 is number of users and d2 is number of movies
+class SparseMat{
+    public:
+        long d1, d2;
+        long nnz;
+        double *vals;
+        long *index;
+        long *cols;
+        long *rows;
+        SparseMat(long d1, long d2, long nnz){
+            vals = new double[nnz];
+            index = new long[d1 + 1];
+            cols = new long[nnz];
+            rows = new long[nnz];
+        }
+        ~SparseMat(){
+            delete[] vals;
+            delete[] index;
+            delete[] cols;
+            delete[] rows;
+        }
+};
 #endif
