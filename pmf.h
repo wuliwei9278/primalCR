@@ -19,7 +19,16 @@ class parameter {
 		int lrate_method, num_blocks; 
 		int do_predict, verbose;
 		int do_nmf;  // non-negative matrix factorization
+		
+		// liwei
+		double stepsize;
+		int ndcg_k;
+
 		parameter() {
+			// liwei
+			double stepsize = 1.0;
+			int ndcg_k = 10;
+
 			solver_type = CCDR1;
 			k = 10;
 			rho = 1e-3;
@@ -42,6 +51,7 @@ class parameter {
 
 extern "C" {
 void ccdr1(smat_t &R, mat_t &W, mat_t &H, testset_t &T, parameter &param);
+void pcr(smat_t &X, mat_t &U, mat_t &V, parameter &param);
 }
 
 

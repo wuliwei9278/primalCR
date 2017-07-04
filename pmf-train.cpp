@@ -1,7 +1,6 @@
 #include "util.h"
 #include "pmf.h"
 #include <cstring>
-#include <iostream>
 
 bool with_weights;
 
@@ -171,9 +170,9 @@ void run_ccdr1(parameter &param, const char* input_file_name, const char* model_
 }
 
 void run_pcr(parameter &param, const char* input_file_name, const char* model_file_name=NULL){
-	smat_t R;
-	testset_t T;
-	mat_t W, H;
+	smat_t X;
+	testset_t T;  // declared to pass into load, which has to take T, not used otherwise
+	mat_t U, V;
 	FILE *model_fp = NULL;
 	if(model_file_name) {
         model_fp = fopen(model_file_name, "wb");
@@ -184,11 +183,28 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
         }
     }
 	
-	load(input_file_name, R, T, false);
-	initial_col(W, param.k, R.rows);
-	initial_col(H, param.k, R.cols);
+	load(input_file_name, X, T, false);
+	// param.k for rank (r in julia)
+	// param.lambda (lambda in julia)
+	// param.stepsize, param.ndcg_k, ...
+
+	initial_col(U, param.k, X.rows);
+	initial_col(V, param.k, X.cols);
 	cout << "the rank is " << param.k << endl;
-	cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
+	cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;
+	cout << X.nnz << endl;	
+	cout << "starts!" << endl;
+	
+    double time = omp_get_wtime();
+    pcr(X, U, V, param);
+    printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
+
+    if(model_fp) {
+        save_mat_t(U,model_fp,false);
+        save_mat_t(V,model_fp,false);
+        fclose(model_fp);
+    }
+    
 	return;
 }
 
@@ -212,7 +228,8 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
     initial_col(H, param.k, R.cols);
     cout << "the rank is " << param.k << endl;
     cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
-    return;
+    cout << R.nnz << endl;
+	return;
 }
 
 int main(int argc, char* argv[]){
