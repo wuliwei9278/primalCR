@@ -252,6 +252,7 @@ mat_t copy_mat_t(mat_t& V, double lambda=1.0) {
 	return g;
 }
 
+
 // implement a function to update j-th row of matrix by adding some constant * i-th row of another matrix, both matrix of type mat_t
 // we want g[j,:] += c * U[i,:]
 void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g) {
@@ -262,3 +263,33 @@ void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g) {
 	return;
 }
 
+// implement a function to convert a matrix into a vector, namely vec() in julia
+void vectorize_mat(const mat_t& g, vec_t& res) {
+	// g is d2 by r
+	long d2 = static_cast<long>(g.size());
+	long r = static_cast<long>(g[0].size());
+	res.resize(static_cast<unsigned int>(d2 * r));
+	long res_size = static_cast<long>(res.size());
+	assert(d2 * r == res_size);
+	long cc = 0;
+	for (long i = 0; i < d2; ++i) {
+		for (long j = 0; j < r; ++j) {
+			res[cc++] = g[i][j];
+		}
+	}
+	return;
+}
+
+
+
+
+
+
+/*
+// implement dot product of vector and subrange of another vector
+// requires vector and sub-vector to be of the same length
+// results stored in another array, return a pointer
+double* vec_prod_array(const vec_t& ui, const vec_t& a, long )
+
+
+*/

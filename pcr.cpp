@@ -41,7 +41,7 @@ double objective(double* m, mat_t& U, mat_t& V, SparseMat* X, double lambda) {
 	return res;
 }
 
-double* comp_m(mat_t& U, mat_t& V, SparseMat* X, int r) {
+double* comp_m(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
 	long d1 = (*X).d1;
 	long d2 = (*X).d2;
 	long nnz = (*X).nnz;
@@ -62,9 +62,10 @@ double* comp_m(mat_t& U, mat_t& V, SparseMat* X, int r) {
 }
 
 
-mat_t obtain_g(mat_t& U, mat_t& V, SparseMat* X, double* m, double lambda) {
+void obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, mat_t& g) {
 	// g is d2 by r, same as V
-	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V
+	// seems faster to move it outside and then pass by reference
+//	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V
 	long d1 = X->d1;
 	double* vals = X->vals;
     long* index = X->index;
@@ -110,19 +111,69 @@ mat_t obtain_g(mat_t& U, mat_t& V, SparseMat* X, double* m, double lambda) {
 		delete[] t;
 	}
 	t = nullptr;
-	return g;
+	return;
 }
 
-double* update_V(SparseMat* X, double lambda, double stepsize, int r, mat_t& U, mat_t& V, double& now_obj) {
+/*
+void compute_Ha(const vec_t& a, double* m, const mat_t& U, const mat_t& V
+				SparseMat* X, double lambda, vect_t& Ha) {
+	// compute Hessian vector product without explicitly calcualte Hessian H
+	long d1 = X->d1;
+	double* vals = X->vals;
+	long* rows = X->rows;
+	long r = static_cast<long>(U[0].size());
+	long start, end, len;	// start, end, denotes starting/ending index in indexs array for i-th user
+	long a_start, a_end;	// a_start, a_end denotes that in array 'a', a is size of d2*r
+	double val_j, val_k;
+	double y_ijk, mask;
+	double* b;
+
+	for (long i = 0; i < d1; ++i) {
+		start = *(index + i);
+		end = *(index + i + 1) - 1;
+		len = end - start + 1;
+		vec_t ui(U[i]);
+		b = new double[len];  // to precompute ui*a
+		for (long k = 0; k < len; ++k) {
+			a_start = 
+
+		}
+		
+		
+		for (long j = start; j < end; ++j) {
+			for (long k = j + 1; k <= end; ++k) {
+				
+
+			}
+		}
+		delete[] b;
+		
+	}
+	b = nullptr;
+	return;
+}
+
+*/
+
+double* update_V(SparseMat* X, double lambda, double stepsize, int r, 
+				 const mat_t& U, mat_t& V, double& now_obj) {
+	// update V while fixing U fixed
 	double* m = comp_m(U, V, X, r);
 	double time = omp_get_wtime();
-	
-	mat_t g = obtain_g(U, V, X, m, lambda);
+	mat_t g = copy_mat_t(V, lambda);
+	obtain_g(U, V, X, m, g);
 	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 
 	cout << "g is succesfully computed " << g.size() << "," << g[0].size() << endl;  
-
-
+	// vectorize_mat function to convert g from mat_t into vec_t 
+	vec_t res;	
+	vectorize_mat(g, res);
+	cout << "vectorization is successful, now size is " << res.size() << endl;
+	// solve_delta function to implement conjugate gradient algorithm
+	
+	// reshape function
+	
+	// truncated newton update for V till convergence
 	return m;
 }
 

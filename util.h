@@ -36,10 +36,11 @@ mat_t load_mat_t(FILE *fp, bool row_major = true);
 void initial(mat_t &X, long n, long k);
 
 // implement smat class myself (liwei)
+// check comments in util.cpp in the end to know more details
 SparseMat* convert(smat_t &R);
 mat_t copy_mat_t(mat_t& V, double lambda);
 void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g);
-
+void vectorize_mat(const mat_t& g, vec_t& res);
 
 
 void initial_col(mat_t &X, long k, long n);
@@ -65,7 +66,6 @@ double calloss(const smat_t &R, const mat_t &W, const mat_t &H);
 // caculate objective for Matrix Factorization Approach
 double calobj(const smat_t &R, const mat_t &W, const mat_t &H, const double lambda, bool iscol=false);
 
-// TODO(liwei): write new obj for primalCR++
 
 
 // caculate RMSE with different input format
