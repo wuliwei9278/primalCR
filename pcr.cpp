@@ -46,6 +46,7 @@ double* comp_m(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
 	long d2 = (*X).d2;
 	long nnz = (*X).nnz;
 	double* m = new double[nnz];
+	fill(m, m + nnz, 0.0);
 	long usr_id, item_id;
 	double dot_res;
 	for (long i = 0; i < nnz; ++i) {
@@ -195,7 +196,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition" << err << endl;
-	for (int k = 1; k <= 10; ++k) {
+	for (int k = 1; k <= 20; ++k) {
 		vec_t Hp = copy_vec_t(p, lambda);
 		
 		compute_Ha(p, m, U, X, r, Hp);
@@ -235,26 +236,32 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r,
 	// reshape function (not needed if implement mat_t substract vec_t function)
 	
 	cout << "solve_delta is okay" << endl;	
+	
 	double prev_obj = objective(m, U, V, X, lambda);
+	
 	mat_t V_old;
-	V_old = copy_mat_t(V, 1.0);
+	//V_old = copy_mat_t(V, 1.0);
 	// truncated newton update for V till convergence
-	double s = 1.0;
+	//	double s = 1.0;
+	cout << "stepsize is " << stepsize << endl;
+	
 	//cout << V_old[0][0] << endl;
 	for (int iter = 0; iter < 20; ++iter) {
-		mat_substract_vec(delta, s, V_old);
+		V_old = copy_mat_t(V, 1.0);
+		mat_substract_vec(delta, stepsize, V_old);
 		delete[] m;
 		//cout << V_old[0][0] << endl;
 		//cout << V[0][0] << endl;
 		m = comp_m(U, V_old, X, r);
 		now_obj = objective(m, U, V_old, X, lambda);
+
 		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
-			<< " New Obj" << now_obj << endl;
+			<< " New Obj" << now_obj << " stepsize" << stepsize << endl;
 		if (now_obj < prev_obj) {
 			V = copy_mat_t(V_old, 1.0);
 			break;
 		} else {
-			s /= 10.0;
+			stepsize /= 2.0;
 		}
 	}
 

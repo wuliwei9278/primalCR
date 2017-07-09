@@ -318,7 +318,6 @@ void vectorize_mat(const mat_t& g, vec_t& res) {
 
 // implement dot product of vector and subrange of another vector
 // requires vector and sub-vector to be of the same length
-// results stored in another array, return a pointer
 double vec_prod_array(const vec_t& ui, const vec_t& a, long a_start, long a_end) {
 	double res = 0.0;
 	long n = static_cast<long>(ui.size());
