@@ -79,7 +79,7 @@ mat_t load_mat_t(FILE *fp, bool row_major){
 }
 void initial(mat_t &X, long n, long k){
 	X = mat_t(n, vec_t(k));
-	srand48(0L);
+	//srand48(0L);
 	for(long i = 0; i < n; ++i){
 		for(long j = 0; j < k; ++j)
 			X[i][j] = 0.1*drand48(); //-1;
@@ -89,7 +89,7 @@ void initial(mat_t &X, long n, long k){
 
 void initial_col(mat_t &X, long k, long n){
 	X = mat_t(k, vec_t(n));
-	srand48(0L);
+	//srand48(0L);
 	for(long i = 0; i < n; ++i)
 		for(long j = 0; j < k; ++j)
 			X[j][i] = 0.1*drand48();
@@ -301,17 +301,22 @@ vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1=1.0, double c2=1.0) {
 // implement a function to convert a matrix into a vector, namely vec() in julia
 void vectorize_mat(const mat_t& g, vec_t& res) {
 	// g is d2 by r
+	// bug here
+	fill(res.begin(), res.end(), 0.0);
+	
 	long d2 = static_cast<long>(g.size());
 	long r = static_cast<long>(g[0].size());
 	res.resize(static_cast<unsigned int>(d2 * r));
 	long res_size = static_cast<long>(res.size());
 	assert(d2 * r == res_size);
+	
 	long cc = 0;
 	for (long i = 0; i < d2; ++i) {
 		for (long j = 0; j < r; ++j) {
 			res[cc++] = g[i][j];
 		}
 	}
+	
 	return;
 }
 
