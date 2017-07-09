@@ -1,6 +1,6 @@
 CXX=g++
 #CXXFLAGS=-fopenmp -static -O3
-CXXFLAGS=-fopenmp -fPIC -pipe  -O3 -std=c++11 
+CXXFLAGS=-fopenmp -fPIC -pipe -O3 -std=c++11 
 #CXXFLAGS = -fPIC
 VERSION=1.41
 

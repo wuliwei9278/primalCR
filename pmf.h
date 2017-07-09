@@ -26,8 +26,8 @@ class parameter {
 
 		parameter() {
 			// liwei
-			double stepsize = 1.0;
-			int ndcg_k = 10;
+			stepsize = 1.0;
+			ndcg_k = 10;
 
 			solver_type = CCDR1;
 			k = 10;

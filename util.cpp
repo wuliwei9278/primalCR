@@ -252,16 +252,51 @@ mat_t copy_mat_t(mat_t& V, double lambda=1.0) {
 	return g;
 }
 
+// implement a function to calculate c * vector (c is some constant)
+vec_t copy_vec_t(const vec_t& g, double c=1.0) {
+	long n = static_cast<long>(g.size());
+	vec_t res(g.size());
+	for (long i = 0; i < n; ++i) {
+		res[i] = g[i] * c;
+	}
+	return res;
+}
 
 // implement a function to update j-th row of matrix by adding some constant * i-th row of another matrix, both matrix of type mat_t
 // we want g[j,:] += c * U[i,:]
-void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g) {
+void update_mat_add_vec(const vec_t& ui, double c, long j, mat_t& g) {
 	long r = static_cast<long>(g[0].size());
 	for (long k = 0; k < r; ++k) {
-		g[j][k] += c * U[i][k];
+		g[j][k] += c * ui[k];
 	}
 	return;
 }
+
+// function to update subrange of a vec by adding another vector
+void update_vec_subrange(const vec_t& ui, double c, vec_t& Ha, long Ha_start, long Ha_end) {
+	long n = static_cast<long>(ui.size());
+	assert(n == (Ha_end - Ha_start + 1));
+	for (long i = 0; i < n; ++i) {
+		Ha[Ha_start + i] += c * ui[i];
+	}
+	return;
+}
+
+
+// implement a function to compute c1 * vec1 + c2 * vec2
+// trade-off: copying takes a little more time over reference
+// BUT compiler will do optimization on copy elision though
+// and function will be more general 
+vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1=1.0, double c2=1.0) {
+	assert(g1.size() == g2.size());
+	vec_t res(g1.size());
+	long n = static_cast<long>(g1.size());
+	for (long i = 0; i < n; ++i) {
+		res[i] = g1[i] * c1 + g2[i] * c2;
+	}
+	return res;
+}
+
 
 // implement a function to convert a matrix into a vector, namely vec() in julia
 void vectorize_mat(const mat_t& g, vec_t& res) {
@@ -281,15 +316,39 @@ void vectorize_mat(const mat_t& g, vec_t& res) {
 }
 
 
-
-
-
-
-/*
 // implement dot product of vector and subrange of another vector
 // requires vector and sub-vector to be of the same length
 // results stored in another array, return a pointer
-double* vec_prod_array(const vec_t& ui, const vec_t& a, long )
+double vec_prod_array(const vec_t& ui, const vec_t& a, long a_start, long a_end) {
+	double res = 0.0;
+	long n = static_cast<long>(ui.size());
+	assert(n == (a_end - a_start + 1));
+	for (long i = 0; i < n; ++i) {
+		res += ui[i] * a[a_start + i];
+	}
+	return res;
+}
+
+// implement matrix substract vector function, where vector is vectorized from same size matrix
+// and requires vectorized is in the same order as vectorize_mat()
+void mat_substract_vec(const vec_t& delta, double s, mat_t& V) {
+	long d2 = static_cast<long>(V.size());
+	long r = static_cast<long>(V[0].size());
+	long delta_size = static_cast<long>(delta.size());
+	assert(d2 * r == delta_size);
+	long cc = 0;
+	for (long i = 0; i < d2; ++i) {
+		for (long j = 0; j < r; ++j) {
+			V[i][j] -= s * delta[cc++];
+		}
+	}
+	assert(cc == delta_size);
+	return;
+}
 
 
-*/
+
+
+
+
+

@@ -39,8 +39,13 @@ void initial(mat_t &X, long n, long k);
 // check comments in util.cpp in the end to know more details
 SparseMat* convert(smat_t &R);
 mat_t copy_mat_t(mat_t& V, double lambda);
-void update_mat_add_vec(const mat_t& U, long i, double c, long j, mat_t& g);
+vec_t copy_vec_t(const vec_t& g, double c);
+vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1, double c2);
+void update_mat_add_vec(const vec_t& ui, double c, long j, mat_t& g);
+void update_vec_subrange(const vec_t& ui, double c, vec_t& Ha, long Ha_start, long Ha_end);
 void vectorize_mat(const mat_t& g, vec_t& res);
+double vec_prod_array(const vec_t& ui, const vec_t& a, long a_start, long a_end);
+void mat_substract_vec(const vec_t& delta, double s, mat_t& V);
 
 
 void initial_col(mat_t &X, long k, long n);
