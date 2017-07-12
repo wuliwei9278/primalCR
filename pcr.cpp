@@ -201,7 +201,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition " << err << endl;
-	for (int k = 1; k <= 10; ++k) {
+	for (int k = 1; k <= 30; ++k) {
 		vec_t Hp = copy_vec_t(p, lambda);
 		compute_Ha(p, m, U, X, r, Hp);
 

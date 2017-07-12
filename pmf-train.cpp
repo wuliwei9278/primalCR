@@ -11,6 +11,8 @@ void exit_with_help()
 	"options:\n"
 	"    -s type : set type of solver (default 0)\n"    
 	"    	 0 -- CCDR1 with fundec stopping condition\n"    
+	"    	 1 -- PirmalCR\n"    
+	"    	 2 -- PrimalCR++\n"    
 	"    -k rank : set the rank (default 10)\n"    
 	"    -n threads : set the number of threads (default 4)\n"    
 	"    -l lambda : set the regularization parameter lambda (default 0.1)\n"    
@@ -182,7 +184,7 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
             exit(1);
         }
     }
-	
+
 	load(input_file_name, X, T, false);
 	// param.k for rank (r in julia)
 	// param.lambda (lambda in julia)
