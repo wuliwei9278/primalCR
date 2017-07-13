@@ -42,8 +42,11 @@ void initial(mat_t &X, long n, long k);
 SparseMat* convert(smat_t &R);
 // return lambda * V
 mat_t copy_mat_t(mat_t& V, double lambda);
+mat_t copy_mat_t(const mat_t& V, double lambda);
 // return c * g
+vec_t copy_vec_t(vec_t& g, double c);
 vec_t copy_vec_t(const vec_t& g, double c);
+
 vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1, double c2);
 void update_mat_add_vec(const vec_t& ui, double c, long j, mat_t& g);
 void update_vec_subrange(const vec_t& ui, double c, vec_t& Ha, long Ha_start, long Ha_end);

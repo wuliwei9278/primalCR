@@ -252,7 +252,28 @@ mat_t copy_mat_t(mat_t& V, double lambda=1.0) {
 	return g;
 }
 
+mat_t copy_mat_t(const mat_t& V, double lambda=1.0) {
+	long d1 = static_cast<long>(V.size());
+	int r = static_cast<int>(V[0].size());
+	mat_t g(d1, vec_t(r));
+	for (long i = 0; i < d1; ++i) {
+		for (int j = 0; j < r; ++j) {
+			g[i][j] = V[i][j] * lambda;
+		}
+	}
+	return g;
+}
+
 // implement a function to calculate c * vector (c is some constant)
+vec_t copy_vec_t(vec_t& g, double c=1.0) {
+	long n = static_cast<long>(g.size());
+	vec_t res(g.size());
+	for (long i = 0; i < n; ++i) {
+		res[i] = g[i] * c;
+	}
+	return res;
+}
+
 vec_t copy_vec_t(const vec_t& g, double c=1.0) {
 	long n = static_cast<long>(g.size());
 	vec_t res(g.size());
