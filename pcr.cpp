@@ -63,10 +63,10 @@ double* comp_m(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
 }
 
 
-void obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, mat_t& g) {
+mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double lambda) {
 	// g is d2 by r, same as V
 	// seems faster to move it outside and then pass by reference
-//	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V
+	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V
 	long d1 = X->d1;
 	double* vals = X->vals;
     long* index = X->index;
@@ -113,14 +113,15 @@ void obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, mat_t& g)
 		delete[] t;
 	}
 	t = nullptr;
-	return;
+	return g;
 }
 
 
-void compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X, 
-				int r, vec_t& Ha) {
+vec_t compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X, 
+				int r, double lambda) {
 	// compute Hessian vector product without explicitly calcualte Hessian H
 	// Ha = lambda * a already
+	vec_t Ha = copy_vec_t(a, lambda);
 	long d1 = X->d1;
 	double* vals = X->vals;
 	long* rows = X->rows;
@@ -188,7 +189,7 @@ void compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 	}
 	b = nullptr;
 	cpvals = nullptr;
-	return;
+	return Ha;
 }
 
 
@@ -202,8 +203,8 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition " << err << endl;
 	for (int k = 1; k <= 30; ++k) {
-		vec_t Hp = copy_vec_t(p, lambda);
-		compute_Ha(p, m, U, X, r, Hp);
+		//vec_t Hp = copy_vec_t(p, lambda);
+		vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
 
 		double prod_p_Hp = dot(p, Hp);
 		
@@ -227,8 +228,8 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r,
 	double* m = comp_m(U, V, X, r);
 	double time = omp_get_wtime();
 	
-	mat_t g = copy_mat_t(V, lambda);
-	obtain_g(U, V, X, m, g);
+	//mat_t g = copy_mat_t(V, lambda);
+	mat_t g = obtain_g(U, V, X, m, lambda);
 	
 	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 

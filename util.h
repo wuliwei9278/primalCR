@@ -37,8 +37,12 @@ void initial(mat_t &X, long n, long k);
 
 // implement smat class myself (liwei)
 // check comments in util.cpp in the end to know more details
+
+// return SparseMat* given smat_t
 SparseMat* convert(smat_t &R);
+// return lambda * V
 mat_t copy_mat_t(mat_t& V, double lambda);
+// return c * g
 vec_t copy_vec_t(const vec_t& g, double c);
 vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1, double c2);
 void update_mat_add_vec(const vec_t& ui, double c, long j, mat_t& g);
