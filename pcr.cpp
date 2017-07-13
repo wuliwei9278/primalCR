@@ -63,7 +63,7 @@ double* comp_m(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
 }
 
 
-mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double lambda) {
+mat_t obtain_g(const mat_t& U, mat_t& V, SparseMat* X, double* m, double lambda) {
 	// g is d2 by r, same as V
 	// seems faster to move it outside and then pass by reference
 	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V

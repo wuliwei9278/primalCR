@@ -97,7 +97,8 @@ void initial_col(mat_t &X, long k, long n){
 
 double dot(const vec_t &a, const vec_t &b){
 	double ret = 0;
-#pragma omp parallel for 
+// why this causes the bug in CG? 
+//#pragma omp parallel for 
 	for(int i = a.size()-1; i >=0; --i)
 		ret+=a[i]*b[i];
 	return ret;
@@ -186,7 +187,7 @@ double calrmse(testset_t &testset, const mat_t &W, const mat_t &H, bool iscol){
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht){
 	size_t nnz = testset.nnz;
 	double rmse = 0, err;
-#pragma omp parallel for reduction(+:rmse)
+//#pragma omp parallel for reduction(+:rmse)
 	for(size_t idx = 0; idx < nnz; ++idx){
 		testset[idx].v -= Wt[testset[idx].i]*Ht[testset[idx].j];
 		rmse += testset[idx].v*testset[idx].v;
@@ -197,7 +198,7 @@ double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht){
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht, vec_t &oldWt, vec_t &oldHt){
 	size_t nnz = testset.nnz;
 	double rmse = 0, err;
-#pragma omp parallel for reduction(+:rmse)
+//#pragma omp parallel for reduction(+:rmse)
 	for(size_t idx = 0; idx < nnz; ++idx){
 		testset[idx].v -= Wt[testset[idx].i]*Ht[testset[idx].j] - oldWt[testset[idx].i]*oldHt[testset[idx].j];
 		rmse += testset[idx].v*testset[idx].v;
