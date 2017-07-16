@@ -97,7 +97,6 @@ void initial_col(mat_t &X, long k, long n){
 
 double dot(const vec_t &a, const vec_t &b){
 	double ret = 0;
-// why this causes the bug in CG? 
 //#pragma omp parallel for 
 	for(int i = a.size()-1; i >=0; --i)
 		ret+=a[i]*b[i];
@@ -187,7 +186,7 @@ double calrmse(testset_t &testset, const mat_t &W, const mat_t &H, bool iscol){
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht){
 	size_t nnz = testset.nnz;
 	double rmse = 0, err;
-//#pragma omp parallel for reduction(+:rmse)
+#pragma omp parallel for reduction(+:rmse)
 	for(size_t idx = 0; idx < nnz; ++idx){
 		testset[idx].v -= Wt[testset[idx].i]*Ht[testset[idx].j];
 		rmse += testset[idx].v*testset[idx].v;
@@ -198,7 +197,7 @@ double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht){
 double calrmse_r1(testset_t &testset, vec_t &Wt, vec_t &Ht, vec_t &oldWt, vec_t &oldHt){
 	size_t nnz = testset.nnz;
 	double rmse = 0, err;
-//#pragma omp parallel for reduction(+:rmse)
+#pragma omp parallel for reduction(+:rmse)
 	for(size_t idx = 0; idx < nnz; ++idx){
 		testset[idx].v -= Wt[testset[idx].i]*Ht[testset[idx].j] - oldWt[testset[idx].i]*oldHt[testset[idx].j];
 		rmse += testset[idx].v*testset[idx].v;
@@ -241,17 +240,6 @@ SparseMat* convert(smat_t &R) {
 // implement a function to calculate lambda * matrix
 // returns a matrix
 
-mat_t copy_mat_t(mat_t& V, double lambda=1.0) {
-	long d1 = static_cast<long>(V.size());
-	int r = static_cast<int>(V[0].size());
-	mat_t g(d1, vec_t(r));
-	for (long i = 0; i < d1; ++i) {
-		for (int j = 0; j < r; ++j) {
-			g[i][j] = V[i][j] * lambda;
-		}
-	}
-	return g;
-}
 
 mat_t copy_mat_t(const mat_t& V, double lambda=1.0) {
 	long d1 = static_cast<long>(V.size());
@@ -266,14 +254,7 @@ mat_t copy_mat_t(const mat_t& V, double lambda=1.0) {
 }
 
 // implement a function to calculate c * vector (c is some constant)
-vec_t copy_vec_t(vec_t& g, double c=1.0) {
-	long n = static_cast<long>(g.size());
-	vec_t res(g.size());
-	for (long i = 0; i < n; ++i) {
-		res[i] = g[i] * c;
-	}
-	return res;
-}
+
 
 vec_t copy_vec_t(const vec_t& g, double c=1.0) {
 	long n = static_cast<long>(g.size());
@@ -309,7 +290,7 @@ void update_vec_subrange(const vec_t& ui, double c, vec_t& Ha, long Ha_start, lo
 // trade-off: copying takes a little more time over reference
 // BUT compiler will do optimization on copy elision though
 // and function will be more general 
-vec_t add_vec_vec(vec_t& g1, vec_t& g2, double c1=1.0, double c2=1.0) {
+vec_t add_vec_vec(const vec_t& g1, const vec_t& g2, double c1=1.0, double c2=1.0) {
 	assert(g1.size() == g2.size());
 	vec_t res(g1.size());
 	long n = static_cast<long>(g1.size());
