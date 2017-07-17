@@ -284,17 +284,17 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 }
 
 double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, double lambda, 
-				vec_t& ui, double* D, vec_t& g, long& cc) {
+					double* D, vec_t& g, long& cc) {
 	// cc is the number of pariwise comparisons for items of different ratings
 	// should be upper bounded by num_pairs (or D.size())
-	cout << "entering obtain_g_u" << endl;
+	//cout << "entering obtain_g_u" << endl;
 	cc = 0;
 	double* vals = X->vals;
 	long* rows = X->rows;
 	long* index = X->index;
 	long start = *(index + i);
 	long end = *(index + i + 1) - 1;
-	cout << start << " " << end << endl;
+	//cout << start << " " << end << endl;
 	long len = end - start + 1;
 
 	double val_j, val_k;
@@ -307,17 +307,17 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
 	if (len == 0 || len == 1) { 
 		return D;
 	}
-	cout << "len is " << len << endl;	
+	//cout << "len is " << len << endl;	
 	t = new double[len]; 	// t is pointer to array length of len
 	fill(t, t + len, 0.0);
-	cout << "t is okay" << endl;
-	for (long j = start; i <= end - 1; ++j) {
-		//cout << j << endl;
+	//cout << "t is okay" << endl;
+	for (long j = start; j <= end - 1; ++j) {
 		val_j = *(vals + j);
+		//cout << j << endl;
 		for (long k = j + 1; k <= end; ++k) {
             
 			val_k = *(vals + k);
-			cout << j << " " << k << " " << cc << endl;
+		//	cout << i << " " << j << " " << k << " " << cc << endl;
 			if (val_j == val_k) {
             	++cc;
 				continue;
@@ -339,7 +339,7 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
 			++cc;
 		}
 	}
-	cout << "first part finished" << endl;
+	//cout << "first part finished" << endl;
 	for (long k = 0; k < len; ++k) {
 		long j = *(rows + start + k);
 		double c = *(t + k); 
@@ -464,7 +464,7 @@ vec_t solve_delta_u(long i, vec_t& g, double* D, const mat_t& V, SparseMat* X,
 
 double* update_u(long i, const mat_t& V, SparseMat* X, double* m, int r, 
 			  double lambda, double stepsize, vec_t& ui, double& obj_u_new) {
-	cout << "enter update_u " << i << endl;
+	//cout << "enter update_u " << i << endl;
 	long* index = X->index;
 	long start = *(index + i);
 	long end = *(index + i + 1) - 1;
@@ -473,21 +473,21 @@ double* update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 		return m;
 	}
 	size_t num_pairs = static_cast<size_t>(len * (len - 1) / 2);
-	cout << "num_pairs " << num_pairs << endl;
+	//cout << "num_pairs " << num_pairs << endl;
 	// use D to store mask results of pairwise comparison to save time
 	// bad allocator error, could be too large for stack space
 	// vec_t D = vec_t(num_pairs, 0.0);
 	double* D = new double[num_pairs];
 	fill(D, D + num_pairs, 0.0);
-	cout << "initializing D is okay" <<endl;
+	//cout << "initializing D is okay" <<endl;
 	// cc is the number of pariwise comparisons for items of different ratings
 	// should be upper bounded by num_pairs (or D.size())
 	long cc = 0;
 	vec_t g = copy_vec_t(ui, lambda);
-	D = obtain_g_u(i, V, X, m, r, lambda, ui, D, g, cc);
-	cout << "obtain_g_u is okay" <<endl;
+	D = obtain_g_u(i, V, X, m, r, lambda, D, g, cc);
+	//cout << "obtain_g_u is okay" <<endl;
 	double prev_obj = objective_u(i, m, ui, X, lambda);
-	cout << "objective_u is okay" << endl;
+	//cout << "objective_u is okay" << endl;
 	if (cc == 0 || norm(g) < 0.0001) {
 		obj_u_new = prev_obj;
 		delete[] D;
@@ -507,6 +507,8 @@ double* update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 			stepsize /= 2.0;
 		}
 	}
+	delete[] D;
+	D = nullptr;
 	return m;
 
 }
@@ -514,7 +516,7 @@ double* update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 void update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, const mat_t& V, 
 				mat_t& U, double& now_obj) {
 	// update U while fixing V
-	cout << "entering update_U" <<endl;
+	//cout << "entering update_U" <<endl;
 	double total_obj_new = 0.0;
 	total_obj_new += lambda / 2.0 * norm(V);
 	double obj_u_new = 0.0;
@@ -559,7 +561,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	cout << "time for objective function takes " << omp_get_wtime() - time << endl;
 	cout << "iniitial objective is " << now_obj << endl;
 	
-	int num_iter = 1;
+	int num_iter = 20;
 	
 	
 	/*
@@ -575,9 +577,9 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 		// need to free space pointer m points to before pointing it to another memory
 		delete[] m;
 		m = update_V(X, lambda, stepsize, r, U, V, now_obj);
-		cout << iter << " update V while fixing U " << omp_get_wtime() - time << endl;
+		cout << iter << " update V while fixing U " << omp_get_wtime() - time << " objective function " << now_obj << endl;
 		update_U(X, m, lambda, stepsize, r, V, U, now_obj);
-		cout << iter << " update V while fixing U " << omp_get_wtime() - time << endl;
+		cout << iter << " update V while fixing U " << omp_get_wtime() - time << " objective function " << now_obj << endl;
 	}
 	
 	delete[] m;
