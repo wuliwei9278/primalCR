@@ -766,13 +766,17 @@ function main(x, y, v, xx, yy, vv)
 	end
 
 
-	r = 100; 
+	r = 10; 
 	lambda = 5000;
 	ndcg_k = 10;
 	# initialize U, V
 	srand(1234)
-	U = 0.1*randn(r, d1);
-	V = 0.1*randn(r, d2);
+	#U = 0.1*randn(r, d1);
+	#V = 0.1*randn(r, d2);
+	U = readdlm("initial.U")
+	U = U'
+	V = readdlm("initial.V")
+	V = V'
 	stepsize = 1
 
 	totaltime = 0.00000;

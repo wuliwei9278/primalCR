@@ -1,5 +1,10 @@
 #ifndef MATUTIL
 #define MATUTIL
+
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <random>
 #include <iostream>
 #include <new>  // use new[] in C++, don't use MALLOC
 #include <cstdio>
@@ -35,9 +40,10 @@ void save_mat_t(mat_t A, FILE *fp, bool row_major = true);
 mat_t load_mat_t(FILE *fp, bool row_major = true);
 void initial(mat_t &X, long n, long k);
 
+
 // implement smat class myself (liwei)
 // check comments in util.cpp in the end to know more details
-
+mat_t read_initial(string file_name);
 // return SparseMat* given smat_t
 SparseMat* convert(smat_t &R);
 // return lambda * V

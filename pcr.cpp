@@ -78,6 +78,24 @@ void update_m(long i, const vec_t& ui, const mat_t& V, SparseMat* X, int r, doub
 	return;
 }
 
+double* compute_mm(long i, const vec_t& ui_new, const mat_t& V, SparseMat* X, int r) {
+	long* rows = X->rows;
+	long* index = X->index;
+	long start = *(index + i);
+	long end = *(index + i + 1);
+	long len = end - start;
+	double* mm = new double[len];
+	for (long j = start; j < end; ++j) {
+		long item_id = *(rows + j);
+		double res = 0.0;
+		for (int k = 0; k < r; ++k) {
+			res += ui_new[k] * V[item_id][k];
+		}
+		*(mm + j - start) = res;
+	}
+	return mm;
+}
+
 
 mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double lambda) {
 	// g is d2 by r, same as V
@@ -217,7 +235,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition " << err << endl;
-	for (int k = 1; k <= 10; ++k) {
+	for (int k = 1; k <= 50; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
 		vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
 
@@ -288,7 +306,7 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
 	// cc is the number of pariwise comparisons for items of different ratings
 	// should be upper bounded by num_pairs (or D.size())
 	//cout << "entering obtain_g_u" << endl;
-	cc = 0;
+	
 	double* vals = X->vals;
 	long* rows = X->rows;
 	long* index = X->index;
@@ -301,25 +319,13 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
     double y_ijk, mask, s_jk;	
 	double* t;
 
-	// initialize gradient of ui
-	//vec_t g = vec_t(static_cast<size_t>(r), 0.0);
-	//vec_t g = copy_vec_t(ui, lambda);
-	if (len == 0 || len == 1) { 
-		return D;
-	}
-	//cout << "len is " << len << endl;	
 	t = new double[len]; 	// t is pointer to array length of len
 	fill(t, t + len, 0.0);
-	//cout << "t is okay" << endl;
 	for (long j = start; j <= end - 1; ++j) {
 		val_j = *(vals + j);
-		//cout << j << endl;
 		for (long k = j + 1; k <= end; ++k) {
-            
 			val_k = *(vals + k);
-		//	cout << i << " " << j << " " << k << " " << cc << endl;
 			if (val_j == val_k) {
-            	++cc;
 				continue;
          	} else if (val_j > val_k) {
                 y_ijk = 1.0;
@@ -328,15 +334,13 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
             }
 			mask = *(m + j) - *(m + k);
             mask *= y_ijk;
-			//cout << mask << endl;
 			if (mask < 1.0) {
 				D[cc] = 1.0;
 				s_jk = 2.0 * (mask - 1);
-			//	cout << s_jk << endl;
 				*(t + j - start) += s_jk;
 				*(t + k - start) -= s_jk;
 			}
-			++cc;
+			cc++;
 		}
 	}
 	//cout << "first part finished" << endl;
@@ -352,21 +356,20 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
 	return D;
 }
 
-double objective_u(long i, double* m, const vec_t& ui, SparseMat* X, double lambda) {
+double objective_u(long i, double* mm, const vec_t& ui, SparseMat* X, double lambda) {
 	double res = 0.0;
 	res += lambda / 2.0 * norm(ui);
 
 	double* vals = X->vals;
 	long* index = X->index;
 	long start, end;
-	double val_j, val_k;
 	double y_ijk, mask;
 	start = *(index + i);
 	end = *(index + i + 1) - 1;
 	for (long j = start; j <= end - 1; ++j) {
-		val_j = *(vals + j);
+		double val_j = *(vals + j);
 		for (long k = j + 1; k <= end; ++k) {
-			val_k = *(vals + k);
+			double val_k = *(vals + k);
 			if (val_j == val_k) {
 				continue;
 			} else if (val_j > val_k) {
@@ -374,7 +377,7 @@ double objective_u(long i, double* m, const vec_t& ui, SparseMat* X, double lamb
 			} else {
 				y_ijk = -1.0;
 			}
-			mask = *(m + j) - *(m + k);
+			mask = *(mm + j - start) - *(mm + k - start);
 			mask *= y_ijk;
 			if (mask < 1.0) {
 				res += (1.0 - mask) * (1.0 - mask);
@@ -386,7 +389,7 @@ double objective_u(long i, double* m, const vec_t& ui, SparseMat* X, double lamb
 
 // unlike compute_Ha(), we don't need m, since no product of ui, vj will be used
 vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X, 
-				int r, double lambda) {
+				double* m, int r, double lambda) {
 	vec_t Hs = copy_vec_t(s, lambda);
 	
 	double* vals = X->vals;
@@ -403,7 +406,11 @@ vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X,
 	b = new double[len];  // to precompute ui*a
 	for (long k = 0; k < len; ++k) {
 		long j = *(rows + start + k);
-		b[k] = dot(s, V[j]);
+		double res = 0.0;
+		for (int k = 0; k < r; ++k) {
+			res += s[k] * V[j][k];
+		}
+		*(b + k) = res;
 	}
 
 	cpvals = new double[len];
@@ -414,16 +421,25 @@ vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X,
 		val_j = *(vals + j);
 		for (long k = j + 1; k <= end; ++k) {
             val_k = *(vals + k);
+			double y_ijk;
 			if (val_j == val_k) {
-                ++cc;
 				continue;
-            } 
-            if (D[cc++] > 0.0) {
+            } else if (val_j > val_k) {
+				y_ijk = 1.0;
+			} else {
+				y_ijk = -1.0;
+			}
+			double mask = *(m + j) - *(m + k);
+			mask *= y_ijk;
+
+			if (mask < 1.0) {
+            //if (D[cc] > 0.0) {
             	ddd = *(b + j - start) - *(b + k - start);
             	ddd *= 2.0;
             	*(cpvals + j - start) += ddd;
                 *(cpvals + k - start) -= ddd;
             }
+			cc++;
         }
 	}
 	for (long k = 0; k < len; ++k) {
@@ -439,20 +455,20 @@ vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X,
 }
 
 vec_t solve_delta_u(long i, vec_t& g, double* D, const mat_t& V, SparseMat* X, 
-					int r, double lambda) {
+					double* m, int r, double lambda) {
 	vec_t delta(g.size(), 0.0);
 	vec_t rr = copy_vec_t(g, -1.0);
 	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
-	cout << "break condition " << err << endl;
+//	cout << "break condition " << err << endl;
 	for (int k = 1; k <= 10; ++k) {
-		vec_t Hp = obtain_Hs(i, p, D, V, X, r, lambda);
+		vec_t Hp = obtain_Hs(i, p, D, V, X, m, r, lambda);
 		//vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
 		double prod_p_Hp = dot(p, Hp);
 		double alpha = -1.0 * dot(rr, p) / prod_p_Hp;		
 		delta = add_vec_vec(delta, p, 1.0, alpha);
 		rr = add_vec_vec(rr, Hp, 1.0, alpha);
-		cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
+//		cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
 		if (sqrt(norm(rr)) < err) {
 			break;
 		}
@@ -463,50 +479,52 @@ vec_t solve_delta_u(long i, vec_t& g, double* D, const mat_t& V, SparseMat* X,
 }
 
 
-void update_u(long i, const mat_t& V, SparseMat* X, double* m, int r, 
-			  double lambda, double stepsize, vec_t& ui, double& obj_u_new) {
+vec_t update_u(long i, const mat_t& V, SparseMat* X, double* m, int r, 
+			  double lambda, double stepsize, const vec_t& ui, double& obj_u_new) {
 	//cout << "enter update_u " << i << endl;
 	long* index = X->index;
 	long start = *(index + i);
 	long end = *(index + i + 1) - 1;
 	long len = end - start + 1;
-	if (len < 2) {
-		return;
-	}
-	cout << "User " << i << " has rated " << len << " items " << endl; 
+//	cout << "User " << i << " has rated " << len << " items " << endl; 
 	size_t num_pairs = static_cast<size_t>(len * (len - 1) / 2);
 	//cout << "num_pairs " << num_pairs << endl;
 	// use D to store mask results of pairwise comparison to save time
 	// bad allocator error, could be too large for stack space
 	// vec_t D = vec_t(num_pairs, 0.0);
 	double* D = new double[num_pairs];
-	fill(D, D + num_pairs, 0.0);
+	fill(D, D + num_pairs, -1.0);
 	//cout << "initializing D is okay" <<endl;
 	// cc is the number of pariwise comparisons for items of different ratings
 	// should be upper bounded by num_pairs (or D.size())
 	long cc = 0;
 	vec_t g = copy_vec_t(ui, lambda);
 	D = obtain_g_u(i, V, X, m, r, lambda, D, g, cc);
-	//cout << "obtain_g_u is okay" <<endl;
-	double prev_obj = objective_u(i, m, ui, X, lambda);
-	//cout << "objective_u is okay" << endl;
+	double* mm = compute_mm(i, ui, V, X, r);
+	double prev_obj = objective_u(i, mm, ui, X, lambda);
 	if (cc == 0 || norm(g) < 0.0001) {
 		obj_u_new = prev_obj;
 		delete[] D;
+		delete[] mm;
+		mm = nullptr;
 		D = nullptr;
-		return;
+		return ui;
 	}
-	vec_t delta = solve_delta_u(i, g, D, V, X, r, lambda);
+	vec_t delta = solve_delta_u(i, g, D, V, X, m, r, lambda);
+	vec_t ui_new = copy_vec_t(ui, 1.0);
 	for (int iter = 0; iter < 20; ++iter) {
-		vec_t ui_new = copy_vec_t(ui, 1.0);
 		ui_new = add_vec_vec(ui, delta, 1.0, -stepsize);
-		update_m(i, ui_new, V, X, r, m);
-		obj_u_new = objective_u(i, m, ui_new, X, lambda);
-		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
-		             << " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
+		//update_m(i, ui_new, V, X, r, m);
+
+		delete[] mm;
+		mm = compute_mm(i, ui_new, V, X, r);
+		
+		obj_u_new = objective_u(i, mm, ui_new, X, lambda);
+		
+	//	cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
+	//	             << " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
+		
 		if (obj_u_new < prev_obj) {
-			ui = copy_vec_t(ui_new, 1.0);
-			update_m(i, ui, V, X, r, m);
 			break;
 		} else {
 			stepsize /= 2.0;
@@ -514,25 +532,30 @@ void update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 	}
 	delete[] D;
 	D = nullptr;
-	return;
+	mm = nullptr;
+	return ui_new;
 
 }
 
-void update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, const mat_t& V, 
-				mat_t& U, double& now_obj) {
+mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, const mat_t& V, 
+				const mat_t& U, double& now_obj) {
 	// update U while fixing V
 	//cout << "entering update_U" <<endl;
 	double total_obj_new = 0.0;
 	total_obj_new += lambda / 2.0 * norm(V);
 	double obj_u_new = 0.0;
 	long d1 = X->d1;
-	for (long i = 0; i < 10; ++i) {
+	mat_t U_new = copy_mat_t(U, 1.0);
+	for (long i = 0; i < d1; ++i) {
 		// modify U[i], obj_u_new inside update_u()
-		update_u(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
+		vec_t ui_new = update_u(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
+		for (int k = 0; k < r; ++k) {
+			U_new[i][k] = ui_new[k];
+		}
 		total_obj_new += obj_u_new;
 	}
 	now_obj = total_obj_new;
-	return;
+	return U_new;
 
 }
 	
@@ -557,16 +580,13 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	long nnz = (*X).nnz;
 	cout << nnz << endl;
 	double* m = comp_m(U, V, X, r);
-	cout << "so far so good in pcr"<<endl;
-	cout << "First and Last element in m array" << *m << " " << *(m + nnz - 1) << endl;
 
 	double time = omp_get_wtime();
 	now_obj = objective(m, U, V, X, lambda);
 	
-	cout << "time for objective function takes " << omp_get_wtime() - time << endl;
 	cout << "iniitial objective is " << now_obj << endl;
 	
-	int num_iter = 1;
+	int num_iter = 10;
 	
 	
 	/*
@@ -580,10 +600,13 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	time = omp_get_wtime();
 	for (int iter = 0; iter < num_iter; ++iter) {
 		// need to free space pointer m points to before pointing it to another memory
-		//delete[] m;
-		//m = update_V(X, lambda, stepsize, r, U, V, now_obj);
-		//cout << iter << " update V while fixing U " << omp_get_wtime() - time << " objective function " << now_obj << endl;
-		update_U(X, m, lambda, stepsize, r, V, U, now_obj);
+		delete[] m;
+		m = update_V(X, lambda, stepsize, r, U, V, now_obj);
+		cout << iter << " update V while fixing U " << omp_get_wtime() - time << " objective function " << now_obj << endl;
+		m = comp_m(U, V, X, r);
+		U = update_U(X, m, lambda, stepsize, r, V, U, now_obj);
+		m = comp_m(U, V, X, r);
+		cout << (now_obj - objective(m, U, V, X, lambda)) << endl;
 		cout << iter << " update U while fixing V " << omp_get_wtime() - time << " objective function " << now_obj << endl;
 	}
 	

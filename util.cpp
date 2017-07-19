@@ -78,12 +78,17 @@ mat_t load_mat_t(FILE *fp, bool row_major){
 	return A;
 }
 void initial(mat_t &X, long n, long k){
+	default_random_engine generator;
+	normal_distribution<double> distribution(0.0, 1.0);
 	X = mat_t(n, vec_t(k));
 	//srand48(0L);
 	for(long i = 0; i < n; ++i){
-		for(long j = 0; j < k; ++j)
-			X[i][j] = 0.1*drand48(); //-1;
+		for(long j = 0; j < k; ++j) {
+			double number = distribution(generator);
+			X[i][j] = number;
+			//X[i][j] = 0.1*drand48(); //-1;
 			//X[i][j] = 0; //-1;
+		}
 	}
 }
 
@@ -97,7 +102,6 @@ void initial_col(mat_t &X, long k, long n){
 
 double dot(const vec_t &a, const vec_t &b){
 	double ret = 0;
-//#pragma omp parallel for 
 	for(int i = a.size()-1; i >=0; --i)
 		ret+=a[i]*b[i];
 	return ret;
@@ -354,7 +358,24 @@ void mat_substract_vec(const vec_t& delta, double s, mat_t& V) {
 }
 
 
+// Debug purpose ONLY
+mat_t read_initial(string file_name) {
+	//mat_t U(n, vec_t(k));
+	mat_t data;
+	ifstream file(file_name);
+	string line;
+	while (getline(file, line)) {
+		vec_t lineData;	
+		stringstream lineStream(line);
+		double value;
+		while (lineStream >> value) {
+			lineData.push_back(value);
+		}
+		data.push_back(lineData);
 
+	}
+	return data;
+}
 
 
 
