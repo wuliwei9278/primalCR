@@ -24,13 +24,15 @@ double objective(double* m, const mat_t& U, const mat_t& V, SparseMat* X, double
 				val_k = *(vals + k);
 				if (val_j == val_k) {
 					continue;
-				} else if (val_j > val_k) {
+				} /*else if (val_j > val_k) {
 					y_ijk = 1.0;	
 				} else {
 					y_ijk = -1.0;
-				}
+				}*/
 				mask = *(m + j) - *(m + k);
-				mask *= y_ijk;
+//				mask *= y_ijk;
+				if ( val_j < val_k )
+					mask =-mask;
 				if (mask < 1.0) {
 					res += (1.0 - mask) * (1.0 - mask);
 				}
@@ -166,7 +168,8 @@ vec_t compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 	long a_start, a_end;	
 	long Ha_start, Ha_end;
 	double val_j, val_k;
-	double y_ijk, mask, ddd;
+	double mask, ddd;
+	int y_ijk;
 	double* b;
 	double* cpvals;
 	r = static_cast<long>(r);	
@@ -193,18 +196,15 @@ vec_t compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
                 
 				if (val_j == val_k) {
                     continue;
-                } else if (val_j > val_k) {
-                    y_ijk = 1.0;
-                } else {
-                    y_ijk = -1.0;
-                }
+                } 
                 
 				mask = *(m + j) - *(m + k);
-                mask *= y_ijk;
+				if ( val_k > val_j )
+					mask = -mask;
                 
 				if (mask < 1.0) {
                     ddd = *(b + j - start) - *(b + k - start);
-					ddd *= 2.0;
+					ddd *= 2;
 
                     *(cpvals + j - start) += ddd;
                     *(cpvals + k - start) -= ddd;
@@ -233,9 +233,11 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 				double lambda) {
 	vec_t delta = vec_t(g.size(), 0.0);
 	vec_t rr = copy_vec_t(g, -1.0);
-	vec_t p = copy_vec_t(rr, -1.0);
+	vec_t p = copy_vec_t(g);
+//	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition " << err << endl;
+	double ttt = omp_get_wtime();
 	for (int k = 1; k <= 10; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
 		vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
@@ -253,18 +255,20 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 		double b = dot(rr, Hp) / prod_p_Hp;
 		p = add_vec_vec(rr, p, -1.0, b);
 	}
+	printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
 	return delta;
 }
 
 double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_t& U,
 				 mat_t& V, double& now_obj) {
 	// update V while fixing U fixed
+	double ttt = omp_get_wtime();
 	double* m = comp_m(U, V, X, r);
+	printf("M time: %lf\n", omp_get_wtime()-ttt);
 	double time = omp_get_wtime();
 	
 	//mat_t g = copy_mat_t(V, lambda);
 	mat_t g = obtain_g(U, V, X, m, lambda);
-	printf("g[5,6]: %lf\n", g[0][0]);
 	
 	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 
@@ -272,13 +276,15 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	// vectorize_mat function to convert g from mat_t into vec_t 
 	vec_t g_vec;	
 	vectorize_mat(g, g_vec);
-	cout << norm(g) - norm(g_vec) << endl;
+//	cout << norm(g) - norm(g_vec) << endl;
  	//assert(norm(g) == norm(g_vec));	
 	cout << "vectorization is successful, now size is " << g_vec.size() << endl;
 	// solve_delta function to implement conjugate gradient algorithm
 	vec_t delta = solve_delta(g_vec, m, U, X, r, lambda);	
 	// reshape function (not needed if implement mat_t substract vec_t function)	
-	cout << "solve_delta is okay" << endl;		
+	cout << "solve_delta is okay" << endl;	
+
+	double aatt = omp_get_wtime();
 	double prev_obj = objective(m, U, V, X, lambda);	
 	mat_t V_new;
 	cout << "stepsize is " << stepsize << endl;
@@ -299,7 +305,8 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 			stepsize /= 2.0;
 		}
 	}
-
+	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
+	printf("ALLALL time: %lf\n", omp_get_wtime()-ttt);
 	return m;
 }
 
@@ -329,16 +336,22 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
 			val_k = *(vals + k);
 			if (val_j == val_k) {
 				continue;
-         	} else if (val_j > val_k) {
+         	} 
+			/*else if (val_j > val_k) {
                 y_ijk = 1.0;
             } else {
                 y_ijk = -1.0;
-            }
+            }*/
 			mask = *(m + j) - *(m + k);
-            mask *= y_ijk;
+//            mask *= y_ijk;
+			if ( val_k > val_j )
+				mask = -mask;
 			if (mask < 1.0) {
 				D[cc] = 1.0;
-				s_jk = 2*(1-mask)*y_ijk;
+//				s_jk = 2*(1-mask)*y_ijk;
+				s_jk = 2*(1-mask);
+				if ( val_k > val_j )
+					s_jk = -s_jk;
 				*(t + j - start) -= s_jk;
 				*(t + k - start) += s_jk;
 //				s_jk = 2.0 * (mask - 1);
@@ -377,13 +390,15 @@ double objective_u(long i, double* mm, const vec_t& ui, SparseMat* X, double lam
 			double val_k = *(vals + k);
 			if (val_j == val_k) {
 				continue;
-			} else if (val_j > val_k) {
+			} /*else if (val_j > val_k) {
 				y_ijk = 1.0;	
 			} else {
 				y_ijk = -1.0;
-			}
+			}*/
 			mask = *(mm + j - start) - *(mm + k - start);
-			mask *= y_ijk;
+			//mask *= y_ijk;
+			if ( val_j < val_k )
+				mask =-mask;
 			if (mask < 1.0) {
 				res += (1.0 - mask) * (1.0 - mask);
 			}
@@ -429,13 +444,15 @@ vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X,
 			double y_ijk;
 			if (val_j == val_k) {
 				continue;
-            } else if (val_j > val_k) {
+            } /*else if (val_j > val_k) {
 				y_ijk = 1.0;
 			} else {
 				y_ijk = -1.0;
-			}
+			}*/
 			double mask = *(m + j) - *(m + k);
-			mask *= y_ijk;
+//			mask *= y_ijk;
+			if ( val_j < val_k)
+				mask = -mask;
 
 			if (mask < 1.0) {
             //if (D[cc] > 0.0) {
@@ -615,12 +632,12 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 		// need to free space pointer m points to before pointing it to another memory
 		delete[] m;
 		m = update_V(X, lambda, stepsize, r, U, V, now_obj);
-		cout << iter << " update V while fixing U " << omp_get_wtime() - time << " objective function " << now_obj << endl;
+		cout << "Iter " << iter << " update_V " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
 		m = comp_m(U, V, X, r);
 		U = update_U(X, m, lambda, stepsize, r, V, U, now_obj);
 		m = comp_m(U, V, X, r);
 		cout << (now_obj - objective(m, U, V, X, lambda)) << endl;
-		cout << iter << " update U while fixing V " << omp_get_wtime() - time << " objective function " << now_obj << endl;
+		cout << "Iter " << iter << " update_U " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
 	}
 	
 	delete[] m;

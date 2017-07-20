@@ -245,14 +245,22 @@ SparseMat* convert(smat_t &R) {
 // returns a matrix
 
 
-mat_t copy_mat_t(const mat_t& V, double lambda=1.0) {
+mat_t copy_mat_t(const mat_t& V, double lambda) {
 	long d1 = static_cast<long>(V.size());
 	int r = static_cast<int>(V[0].size());
 	mat_t g(d1, vec_t(r));
+	if ( lambda != 1.0 ) {
 	for (long i = 0; i < d1; ++i) {
 		for (int j = 0; j < r; ++j) {
 			g[i][j] = V[i][j] * lambda;
 		}
+	}
+	} else {
+	for (long i = 0; i < d1; ++i) {
+		for (int j = 0; j < r; ++j) {
+			g[i][j] = V[i][j] ;
+		}
+	}
 	}
 	return g;
 }
@@ -260,11 +268,17 @@ mat_t copy_mat_t(const mat_t& V, double lambda=1.0) {
 // implement a function to calculate c * vector (c is some constant)
 
 
-vec_t copy_vec_t(const vec_t& g, double c=1.0) {
+vec_t copy_vec_t(const vec_t& g, double c) {
 	long n = static_cast<long>(g.size());
 	vec_t res(g.size());
-	for (long i = 0; i < n; ++i) {
-		res[i] = g[i] * c;
+	if ( c == 1.0) {
+		for (long i = 0; i < n; ++i) {
+			res[i] = g[i];
+		}
+	} else {
+		for (long i = 0; i < n; ++i) {
+			res[i] = g[i] * c;
+		}
 	}
 	return res;
 }
@@ -309,7 +323,7 @@ vec_t add_vec_vec(const vec_t& g1, const vec_t& g2, double c1=1.0, double c2=1.0
 void vectorize_mat(const mat_t& g, vec_t& res) {
 	// g is d2 by r
 	// bug here
-	fill(res.begin(), res.end(), 0.0);
+//	fill(res.begin(), res.end(), 0.0);
 	
 	long d2 = static_cast<long>(g.size());
 	long r = static_cast<long>(g[0].size());
