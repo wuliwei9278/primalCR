@@ -65,6 +65,7 @@ function obtain_g_new(U, V, X, d1, d2, lambda, rows, vals, m)
 		for j in 1:len
 			J = d2_bar[j]
 			g[:,J] += ui * t[j]
+#	println(J, t[j]);
 		end
 	end
 #	close(ff)
@@ -85,6 +86,7 @@ function comp_m(U, V, X, d1, d2, rows, vals, cols)
 			mvals[cc] = dot(ui, V[:,j])
 		end
 	end
+
 	return sparse(rows, cols, mvals, d2, d1);
 
 #	m = spzeros(d2,d1);
@@ -263,6 +265,8 @@ end
 function update_V(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, cols)
 	m = comp_m(U, V, X, d1, d2, rows, vals, cols);
   	g = obtain_g_new(U, V, X, d1, d2, lambda, rows, vals,m)
+	println(size(g));
+	println("g[5,6]: ", g[1, 1]);
 	delta = solve_delta(vec(g), m, U, X, r, d1, d2, lambda, rows, vals)
 	delta = reshape(delta, size(V))
 	prev_obj = objective(m, U, V, X, d1, lambda, rows, vals)
@@ -475,6 +479,9 @@ function obtain_g_u_new(i, ui, V, X, r, d2, rows, vals, lambda, mm)
 	end
 
 	g += lambda * ui
+
+#	println("g: ", g)
+#	println("D: ", D)
 	return g, D, c
 end
 
@@ -560,6 +567,7 @@ function update_U(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, m)
 	total_obj_new = lambda/2*(vecnorm(V)^2)
 	obj_new = 0
 
+#	for i in 1:1
 	for i in 1:d1
 		ui = U[:, i]
 # The reason of adding of commented codes before is to consider the case there are no comparisions for a particular user.
@@ -580,6 +588,7 @@ function update_U(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, m)
 #			end	
 #		println("prev value: ", prev)
 		end	
+#		println(ui)
 		total_obj_new += obj_new
 		U[:, i] = ui
 	end

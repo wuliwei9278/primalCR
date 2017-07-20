@@ -132,8 +132,8 @@ mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double l
                 mask *= y_ijk;
 				if (mask < 1.0) {
 					s_jk = 2.0 * (mask - 1);
-					*(t + j - start) += s_jk;
-					*(t + k - start) -= s_jk;
+					*(t + j - start) += s_jk*y_ijk;
+					*(t + k - start) -= s_jk*y_ijk;
 				}
 			}
 		}
@@ -142,6 +142,7 @@ mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double l
 			double c = *(t + k); 
 			// we want g[j,:] += c * U[i,:]
 			update_mat_add_vec(U[i], c, j, g);
+//			printf("%d %lf\n", j, c);
 		}
 		
 		delete[] t;
@@ -235,7 +236,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
 	cout << "break condition " << err << endl;
-	for (int k = 1; k <= 50; ++k) {
+	for (int k = 1; k <= 10; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
 		vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
 
@@ -263,6 +264,7 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	
 	//mat_t g = copy_mat_t(V, lambda);
 	mat_t g = obtain_g(U, V, X, m, lambda);
+	printf("g[5,6]: %lf\n", g[0][0]);
 	
 	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 
@@ -336,9 +338,12 @@ double* obtain_g_u(long i, const mat_t& V, SparseMat* X, double* m, int r, doubl
             mask *= y_ijk;
 			if (mask < 1.0) {
 				D[cc] = 1.0;
-				s_jk = 2.0 * (mask - 1);
-				*(t + j - start) += s_jk;
-				*(t + k - start) -= s_jk;
+				s_jk = 2*(1-mask)*y_ijk;
+				*(t + j - start) -= s_jk;
+				*(t + k - start) += s_jk;
+//				s_jk = 2.0 * (mask - 1);
+//				*(t + j - start) += s_jk;
+//				*(t + k - start) -= s_jk;
 			}
 			cc++;
 		}
@@ -500,6 +505,10 @@ vec_t update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 	long cc = 0;
 	vec_t g = copy_vec_t(ui, lambda);
 	D = obtain_g_u(i, V, X, m, r, lambda, D, g, cc);
+//	printf("g: ");
+//	for ( int i=0 ; i<g.size() ; i++)
+//		printf("%lf ", g[i]);
+//	printf("\n");
 	double* mm = compute_mm(i, ui, V, X, r);
 	double prev_obj = objective_u(i, mm, ui, X, lambda);
 	if (cc == 0 || norm(g) < 0.0001) {
@@ -546,11 +555,13 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 	double obj_u_new = 0.0;
 	long d1 = X->d1;
 	mat_t U_new = copy_mat_t(U, 1.0);
+//	for (long i = 0; i < 1; ++i) {
 	for (long i = 0; i < d1; ++i) {
 		// modify U[i], obj_u_new inside update_u()
 		vec_t ui_new = update_u(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
 		for (int k = 0; k < r; ++k) {
 			U_new[i][k] = ui_new[k];
+//			printf("k: %lf\n", ui_new[k]);
 		}
 		total_obj_new += obj_u_new;
 	}
@@ -580,6 +591,8 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	long nnz = (*X).nnz;
 	cout << nnz << endl;
 	double* m = comp_m(U, V, X, r);
+
+	printf("m[5]: %lf\n", m[4]);
 
 	double time = omp_get_wtime();
 	now_obj = objective(m, U, V, X, lambda);
