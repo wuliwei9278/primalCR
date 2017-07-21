@@ -83,6 +83,16 @@ inline double UpdateRating(smat_t &R, const vec_t &Wt, const vec_t &Ht, bool add
 	}
 }
 
+mat_t transpose(mat_t &X) {
+	long m = X.size();
+	long n = X[0].size();
+	mat_t A = mat_t(n, vec_t(m));
+	for ( int i=0 ; i<n ; i++ ) 
+		for ( int j=0 ; j<m ; j++ )
+			A[i][j] = X[j][i];
+	return A; 
+}
+
 // Cyclic Coordinate Descent for Matrix Factorization
 void ccdr1(smat_t &R, mat_t &W, mat_t &H, testset_t &T, parameter &param){
 	int k = param.k;
@@ -95,6 +105,8 @@ void ccdr1(smat_t &R, mat_t &W, mat_t &H, testset_t &T, parameter &param){
 	long num_updates = 0;
 	double reg=0,loss;
 
+	SparseMat* XT = convert(T, R.rows, R.cols);
+	
 	omp_set_num_threads(param.threads);
 
 	// Create transpose view of R
@@ -186,8 +198,13 @@ void ccdr1(smat_t &R, mat_t &W, mat_t &H, testset_t &T, parameter &param){
 						oiter,t+1, Htime+Wtime+Rtime, loss, obj, oldobj - obj, initgnorm, reg);
 			oldobj = obj;
 			if(T.nnz!=0 and param.do_predict){ 
-				if(param.verbose)
+				if(param.verbose) {
 					printf("rmse %.10g", calrmse_r1(T, Wt, Ht, oldWt, oldHt)); 
+					mat_t U = transpose(W);
+					mat_t V = transpose(H);
+					pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, XT, param.ndcg_k);
+					printf("(Testing) pairwise error %lf NDCG %lf", eval_res.first, eval_res.second);
+				}
 			}
 			if(param.verbose) puts("");
 			fflush(stdout);

@@ -201,7 +201,7 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 	cout << "starts!" << endl;
 	
     double time = omp_get_wtime();
-    pcr(X, U, V, param);
+    pcr(X, U, V, T, param);
     printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
 
     if(model_fp) {

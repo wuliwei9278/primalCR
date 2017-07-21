@@ -51,7 +51,7 @@ class parameter {
 
 extern "C" {
 void ccdr1(smat_t &R, mat_t &W, mat_t &H, testset_t &T, parameter &param);
-void pcr(smat_t &X, mat_t &U, mat_t &V, parameter &param);
+void pcr(smat_t &X, mat_t &U, mat_t &V, testset_t &T, parameter &param);
 }
 
 

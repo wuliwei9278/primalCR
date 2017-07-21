@@ -811,7 +811,7 @@ function main(x, y, v, xx, yy, vv)
 	 	#pairwise_error = compute_pairwise_error(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t)
 	 	#ndcg = computer_NDCG(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
 
-	 	pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
+	 	pairwise_error_T, ndcg_T = compute_pairwise_error_ndcg(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
 		pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, X, r, d1, d2, rows, vals, cols, ndcg_k)
 		println("[", iter, ", ", totaltime, ", ", nowobj, ", ", pairwise_error, ", ", ndcg, "],")
 

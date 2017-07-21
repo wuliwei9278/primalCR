@@ -590,7 +590,7 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 
 
 // Primal-CR Algorithm
-void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
+void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	//cout<<"enter pcr"<<endl;
 	int r = param.k;
 	double lambda = param.lambda;
@@ -605,6 +605,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	// X ~ U^T * V
 	
 	SparseMat* X = convert(R);  // remember to free memory X in the end by delete X; set X = NULL;
+	SparseMat* XT = convert(T, X->d1, X->d2);
 	long nnz = (*X).nnz;
 	//cout << nnz << endl;
 	double* m = comp_m(U, V, X, r);
@@ -616,7 +617,9 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	
 	cout << "Iter 0, objective is " << now_obj << endl;
 	pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
-	cout << "pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+	cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+	eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
+	cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 
 	int num_iter = 10;
 	
@@ -646,7 +649,9 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 		total_time += omp_get_wtime() - time;
 		cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
 		eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
-		cout << "pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+		cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+		eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
+		cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 	}
 	
 	delete[] m;

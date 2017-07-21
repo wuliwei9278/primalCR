@@ -241,6 +241,34 @@ SparseMat* convert(smat_t &R) {
     return X;
 }
 
+// Convert testset_t to SparseMat
+SparseMat* convert(testset_t &testset, long d1, long d2) {
+	long nnz = testset.nnz;
+	//cout << "right before X is created" << endl;
+    SparseMat *X = new SparseMat(d1, d2, nnz);
+    //cout << "X is created: users " << (*X).d1 << ",items " << (*X).d2 << ",nnz "<<(*X).nnz << endl;
+	// transpose to get the same format as X
+	long cc = 0, idx=0;
+    for (long j = 0; j < d1; ++j){
+        (*X).index[j] = cc;
+		for ( ; cc<nnz ; ++cc ) {
+			if ( testset.T[cc].i > j)
+				break;
+			(*X).vals[cc] = testset.T[cc].v;
+			(*X).cols[cc] = j;
+			(*X).rows[cc] = static_cast<long>(testset.T[cc].j);
+		}
+    }
+    (*X).index[d1] = cc; // use vals[index[i]:index[i+1]-1] to access i-th user
+//	for ( long j=0 ; j<1 ; j++ ) {
+//		for ( long cc= (*X).index[j] ; cc<(*X).index[j+1] ; cc++ )
+//		printf("%d %d %lf\n", (*X).cols[cc], (*X).rows[cc], (*X).vals[cc]);
+//	}
+	//cout << "will return from convert " << (*X).nnz << endl;
+    return X;
+}
+
+
 // implement a function to calculate lambda * matrix
 // returns a matrix
 

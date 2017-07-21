@@ -50,6 +50,7 @@ pair<double, double> compute_pairwise_error_ndcg(const mat_t& U, const mat_t& V,
 mat_t read_initial(string file_name);
 // return SparseMat* given smat_t
 SparseMat* convert(smat_t &R);
+SparseMat* convert(testset_t &T, long d1, long d2);
 // return lambda * V
 mat_t copy_mat_t(const mat_t& V, double lambda=1.0);
 // return c * g
