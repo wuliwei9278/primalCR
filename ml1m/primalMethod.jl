@@ -224,7 +224,7 @@ function solve_delta(g, m, U, X, r, d1, d2, lambda, rows, vals)
 		if norm(rr) < err
 			break
 		end
-		println(norm(rr))
+		#println(norm(rr))
 		b = dot(rr, Hp) / dot(p, Hp)
 		p = -rr + b * p
 	end
@@ -265,8 +265,8 @@ end
 function update_V(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, cols)
 	m = comp_m(U, V, X, d1, d2, rows, vals, cols);
   	g = obtain_g_new(U, V, X, d1, d2, lambda, rows, vals,m)
-	println(size(g));
-	println("g[5,6]: ", g[1, 1]);
+	#println(size(g));
+	#println("g[5,6]: ", g[1, 1]);
 	delta = solve_delta(vec(g), m, U, X, r, d1, d2, lambda, rows, vals)
 	delta = reshape(delta, size(V))
 	prev_obj = objective(m, U, V, X, d1, lambda, rows, vals)
@@ -278,7 +278,7 @@ function update_V(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, cols)
 		V = Vold - s * delta
 		m = comp_m(U, V, X, d1, d2, rows, vals, cols);
 		new_obj = objective(m, U, V, X, d1, lambda, rows, vals)
-		println("Line Search iter ", iter, " Prev Obj ", prev_obj, " New Obj ", new_obj)
+		#println("Line Search iter ", iter, " Prev Obj ", prev_obj, " New Obj ", new_obj)
 		if (new_obj < prev_obj)
 			break
 		else
@@ -782,15 +782,16 @@ function main(x, y, v, xx, yy, vv)
 	srand(1234)
 	#U = 0.1*randn(r, d1);
 	#V = 0.1*randn(r, d2);
-	U = readdlm("initial.U")
+	U = readdlm("initial_U")
 	U = U'
-	V = readdlm("initial.V")
+	V = readdlm("initial_V")
 	V = V'
 	stepsize = 1
 
 	totaltime = 0.00000;
 	println("iter time objective_function pairwise_error NDCG")
 	pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
+	pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, X, r, d1, d2, rows, vals, cols, ndcg_k)
 	m = comp_m(U, V, X, d1, d2, rows, vals, cols)
 	nowobj = objective(m, U, V, X, d1, lambda, rows, vals)
 	println("[", 0, ", ", totaltime, ", ", nowobj, ", ", pairwise_error, ", ", ndcg, "],")
@@ -811,6 +812,7 @@ function main(x, y, v, xx, yy, vv)
 	 	#ndcg = computer_NDCG(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
 
 	 	pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, Y, r, d1, d2, rows_t, vals_t, cols_t, ndcg_k)
+		pairwise_error, ndcg = compute_pairwise_error_ndcg(U, V, X, r, d1, d2, rows, vals, cols, ndcg_k)
 		println("[", iter, ", ", totaltime, ", ", nowobj, ", ", pairwise_error, ", ", ndcg, "],")
 
 	end

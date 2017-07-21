@@ -34,7 +34,7 @@ class parameter {
 			rho = 1e-3;
 			maxiter = 5;
 			maxinneriter = 5;
-			lambda = 0.1;
+			lambda = 5000;
 			threads = 4;
 			eps = 1e-3;
 			eta0 = 1e-3; // initial eta0
