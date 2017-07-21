@@ -1,6 +1,8 @@
 #ifndef MATUTIL
 #define MATUTIL
 
+#include <numeric>
+#include <utility>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -42,6 +44,8 @@ void initial(mat_t &X, long n, long k);
 
 
 // implement smat class myself (liwei)
+pair<double, double> compute_pairwise_error_ndcg(const mat_t& U, const mat_t& V,
+        SparseMat* X, int ndcg_k);
 // check comments in util.cpp in the end to know more details
 mat_t read_initial(string file_name);
 // return SparseMat* given smat_t

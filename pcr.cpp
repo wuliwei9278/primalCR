@@ -236,7 +236,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(g);
 //	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
-	cout << "break condition " << err << endl;
+	//cout << "break condition " << err << endl;
 	double ttt = omp_get_wtime();
 	for (int k = 1; k <= 10; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
@@ -248,14 +248,14 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 		
 		delta = add_vec_vec(delta, p, 1.0, alpha);
 		rr = add_vec_vec(rr, Hp, 1.0, alpha);
-		cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
+	//	cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
 		if (sqrt(norm(rr)) < err) {
 			break;
 		}
 		double b = dot(rr, Hp) / prod_p_Hp;
 		p = add_vec_vec(rr, p, -1.0, b);
 	}
-	printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
+	//printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
 	return delta;
 }
 
@@ -264,31 +264,31 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	// update V while fixing U fixed
 	double ttt = omp_get_wtime();
 	double* m = comp_m(U, V, X, r);
-	printf("M time: %lf\n", omp_get_wtime()-ttt);
+//	printf("M time: %lf\n", omp_get_wtime()-ttt);
 	double time = omp_get_wtime();
 	
 	//mat_t g = copy_mat_t(V, lambda);
 	mat_t g = obtain_g(U, V, X, m, lambda);
 	
-	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
+//	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 
-	cout << "g is succesfully computed " << g.size() << "," << g[0].size() << endl;  
+//	cout << "g is succesfully computed " << g.size() << "," << g[0].size() << endl;  
 	// vectorize_mat function to convert g from mat_t into vec_t 
 	vec_t g_vec;	
 	vectorize_mat(g, g_vec);
 //	cout << norm(g) - norm(g_vec) << endl;
  	//assert(norm(g) == norm(g_vec));	
-	cout << "vectorization is successful, now size is " << g_vec.size() << endl;
+	//cout << "vectorization is successful, now size is " << g_vec.size() << endl;
 	// solve_delta function to implement conjugate gradient algorithm
 	vec_t delta = solve_delta(g_vec, m, U, X, r, lambda);	
 	// reshape function (not needed if implement mat_t substract vec_t function)	
-	cout << "solve_delta is okay" << endl;	
+//	cout << "solve_delta is okay" << endl;	
 
 	double aatt = omp_get_wtime();
 	double prev_obj = objective(m, U, V, X, lambda);	
 	mat_t V_new;
-	cout << "stepsize is " << stepsize << endl;
-	cout << "norm of delta is " << norm(delta) << endl;
+//	cout << "stepsize is " << stepsize << endl;
+//	cout << "norm of delta is " << norm(delta) << endl;
 	// truncated newton till convergence
 	for (int iter = 0; iter < 20; ++iter) {
 		V_new = copy_mat_t(V, 1.0);
@@ -296,8 +296,8 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 		delete[] m;
 		m = comp_m(U, V_new, X, r);
 		now_obj = objective(m, U, V_new, X, lambda);
-		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
-			 << " New Obj" << now_obj << " stepsize " << stepsize << endl;	
+//		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
+//			 << " New Obj" << now_obj << " stepsize " << stepsize << endl;	
 		if (now_obj < prev_obj) {
 			V = copy_mat_t(V_new, 1.0);
 			break;
@@ -305,8 +305,8 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 			stepsize /= 2.0;
 		}
 	}
-	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
-	printf("ALLALL time: %lf\n", omp_get_wtime()-ttt);
+//	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
+//	printf("ALLALL time: %lf\n", omp_get_wtime()-ttt);
 	return m;
 }
 
@@ -454,8 +454,8 @@ vec_t obtain_Hs(long i, const vec_t& s, double* D, const mat_t& V, SparseMat* X,
 			if ( val_j < val_k)
 				mask = -mask;
 
-			if (mask < 1.0) {
-            //if (D[cc] > 0.0) {
+			//if (mask < 1.0) {
+            if (D[cc] > 0.0) {
             	ddd = *(b + j - start) - *(b + k - start);
             	ddd *= 2.0;
             	*(cpvals + j - start) += ddd;
@@ -591,14 +591,14 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 
 // Primal-CR Algorithm
 void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
-	cout<<"enter pcr"<<endl;
+	//cout<<"enter pcr"<<endl;
 	int r = param.k;
 	double lambda = param.lambda;
 	double stepsize = param.stepsize;
 	int ndcg_k = param.ndcg_k;
 	double now_obj;
 	double totaltime = 0.0;
-	cout << "stepsize is " << stepsize << "ndcg_k is" << ndcg_k << endl;
+	cout << "stepsize is " << stepsize << " and ndcg_k is " << ndcg_k << endl;
 	// X: d1 by d2 sparse matrix, ratings
 	// U: r by d1 dense
 	// V: r by d2 dense
@@ -606,16 +606,18 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 	
 	SparseMat* X = convert(R);  // remember to free memory X in the end by delete X; set X = NULL;
 	long nnz = (*X).nnz;
-	cout << nnz << endl;
+	//cout << nnz << endl;
 	double* m = comp_m(U, V, X, r);
 
-	printf("m[5]: %lf\n", m[4]);
+//	printf("m[5]: %lf\n", m[4]);
 
 	double time = omp_get_wtime();
 	now_obj = objective(m, U, V, X, lambda);
 	
-	cout << "iniitial objective is " << now_obj << endl;
-	
+	cout << "Iter 0, objective is " << now_obj << endl;
+	pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+	cout << "pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+
 	int num_iter = 10;
 	
 	
@@ -627,17 +629,24 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, parameter& param) {
 		cout << g[i][0] << endl;
 	}
 	*/
-	time = omp_get_wtime();
-	for (int iter = 0; iter < num_iter; ++iter) {
+	
+	double total_time = 0.0;
+	
+	for (int iter = 1; iter < num_iter; ++iter) {
+		time = omp_get_wtime();
 		// need to free space pointer m points to before pointing it to another memory
 		delete[] m;
 		m = update_V(X, lambda, stepsize, r, U, V, now_obj);
-		cout << "Iter " << iter << " update_V " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
-		m = comp_m(U, V, X, r);
+		//cout << "Iter " << iter << " update_V " << "Time " << omp_get_wtime() - time << " Objective is " << now_obj << endl;
+		//m = comp_m(U, V, X, r);
 		U = update_U(X, m, lambda, stepsize, r, V, U, now_obj);
-		m = comp_m(U, V, X, r);
-		cout << (now_obj - objective(m, U, V, X, lambda)) << endl;
-		cout << "Iter " << iter << " update_U " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
+		//m = comp_m(U, V, X, r);
+		//cout << (now_obj - objective(m, U, V, X, lambda)) << endl;
+		//cout << "Iter " << iter << " update_U " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
+		total_time += omp_get_wtime() - time;
+		cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
+		eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+		cout << "pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 	}
 	
 	delete[] m;

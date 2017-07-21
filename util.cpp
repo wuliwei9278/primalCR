@@ -215,9 +215,9 @@ SparseMat* convert(smat_t &R) {
     long d1 = R.rows;
     long d2 = R.cols;
     long nnz = R.nnz;
-	cout << "right before X is created" << endl;
+	//cout << "right before X is created" << endl;
     SparseMat *X = new SparseMat(d1, d2, nnz);
-    cout << "X is created: users " << (*X).d1 << ",items " << (*X).d2 << ",nnz "<<(*X).nnz << endl;
+    //cout << "X is created: users " << (*X).d1 << ",items " << (*X).d2 << ",nnz "<<(*X).nnz << endl;
 	// transpose to get the same format as X
     R = R.transpose();
 	long cc = 0;
@@ -230,14 +230,14 @@ SparseMat* convert(smat_t &R) {
             cc++;
         }
     }
-    if (cc == nnz){
+    /*if (cc == nnz){
         cout << "cc is correct in convert function" << endl;
     } else{
         cout << "something is wrong with convert function" << endl;
-    }
+    }*/
     (*X).index[d1] = nnz; // use vals[index[i]:index[i+1]-1] to access i-th user
     R.clear_space();
-	cout << "will return from convert " << (*X).nnz << endl;
+	//cout << "will return from convert " << (*X).nnz << endl;
     return X;
 }
 
@@ -390,6 +390,121 @@ mat_t read_initial(string file_name) {
 	}
 	return data;
 }
+
+
+
+// Write a utility function to compute pairwise error and NDCG@K
+// Shared by both pcr and pcrpp
+pair<double, double> compute_pairwise_error_ndcg(const mat_t& U, const mat_t& V,SparseMat* X, int ndcg_k) {
+	long d1 = X->d1;
+	long d2 = X->d2;
+	double* vals = X->vals;
+	long* rows = X->rows;
+	long* index = X->index;
+	pair<double, double> res;
+	double sum_error = 0.0; 
+	double ndcg_sum = 0.0;
+	long start, end, len;
+	double val_j, val_k;
+	double* score;
+	long* idx_sorted_score;
+	long* idx_sorted_val;
+
+	for (long i = 0; i < d1; ++i) {
+		start = *(index + i);
+		end = *(index + i + 1) - 1;
+		len = end - start + 1;
+		score = new double[len];
+		for (long k = 0; k < len; ++k) {
+			long item_id = *(rows + start + k); 
+			*(score + k) = dot(U[i], V[item_id]);
+		}
+		// compute pairwise_error part
+		long error_comps_i = 0;
+		long num_comps_i = 0;
+		for (long j = start; j < end; ++j) {
+			val_j = *(vals + j);
+			for (long k = j + 1; k <= end; ++k) {
+				val_k = *(vals + k);
+				if (score[j - start] >= score[k - start] && val_j < val_k) {
+					error_comps_i++;
+				}
+				if (score[j - start] <= score[k - start] && val_j > val_k) {
+					error_comps_i++;
+				}
+				num_comps_i++;
+			}
+		}
+		sum_error += static_cast<double>(error_comps_i) / static_cast<double>(num_comps_i++);
+		//cout << i << " sum_error is ok: " << sum_error << endl;	
+		// compute NDCG@K part
+		idx_sorted_score = new long[len];
+		long cc = 0;
+		for (long k = 0; k < len; ++k) {
+			idx_sorted_score[k] = cc;
+			cc++;
+		}
+	//	iota(idx_sorted_score, idx_sorted_score + len, 0);
+		sort(idx_sorted_score, idx_sorted_score + len, 
+			[score](long idx1, long idx2) {return score[idx1] > score[idx2];});
+		// get index for values (decreasing order)
+		idx_sorted_val = new long[len];
+        cc = 0;
+        for (long k = 0; k < len; ++k) {
+            idx_sorted_val[k] = cc;
+            cc++;
+        }
+		//cout << idx_sorted_val[0] << "initial is okay" << idx_sorted_val[len-1] << endl;
+		//iota(idx_sorted_val, idx_sorted_val + len, 0);
+        sort(idx_sorted_val, idx_sorted_val + len, 
+            [vals, start](long idx1, long idx2) {
+				return vals[start + idx1] > vals[start + idx2];
+			});
+		double dcg = 0.0;
+		double dcg_max = 0.0;
+		for (long k = 1; k <= static_cast<long>(ndcg_k); ++k) {
+			long id1 = idx_sorted_score[k - 1];
+			dcg += (pow(2.0, vals[start + id1]) - 1.0) 
+						/ log2(static_cast<double>(k) + 1.0);
+			long id2 = idx_sorted_val[k - 1];
+			dcg_max += (pow(2.0, vals[start + id2]) - 1.0)
+						/ log2(static_cast<double>(k) + 1.0);
+		}
+		ndcg_sum += dcg / dcg_max;
+
+		delete[] score;
+		delete[] idx_sorted_score;
+		delete[] idx_sorted_val;
+	
+
+	}
+	score = nullptr;
+	idx_sorted_score = nullptr;
+	idx_sorted_val = nullptr;
+	res = make_pair(sum_error / static_cast<double>(d1), ndcg_sum / static_cast<double>(d1));
+	return res;
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
