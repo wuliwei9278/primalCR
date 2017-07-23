@@ -1,6 +1,7 @@
 #ifndef MATUTIL
 #define MATUTIL
 
+#include <unordered_set>
 #include <numeric>
 #include <utility>
 #include <string>

@@ -215,9 +215,9 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 
 
 void run_pcrpp(parameter &param, const char* input_file_name, const char* model_file_name=NULL){
-    smat_t R;
-    testset_t T;
-    mat_t W, H;
+	smat_t X;
+    testset_t T;  // declared to pass into load, which has to take T, not used otherwise
+    mat_t U, V;
     FILE *model_fp = NULL;
     if(model_file_name) {
         model_fp = fopen(model_file_name, "wb");
@@ -228,12 +228,23 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
         }
     }
 
-    load(input_file_name, R, T, false);
-    initial(W, R.rows, param.k);
-    initial(H, R.cols, param.k);
-    cout << "the rank is " << param.k << endl;
-    cout << "the number of rows is " << R.rows << " and the number of cols is " << R.cols << endl;
-    cout << R.nnz << endl;
+    load(input_file_name, X, T, false);
+	U = read_initial("initial_U"); V = read_initial("initial_V");
+	cout << "the rank is " << param.k << endl;
+    cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;
+    cout << X.nnz << endl;
+    cout << "starts!" << endl;
+	double time = omp_get_wtime();
+    pcrpp(X, U, V, T, param);
+    printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
+
+    if(model_fp) {
+        save_mat_t(U,model_fp,false);
+        save_mat_t(V,model_fp,false);
+        fclose(model_fp);
+    }
+
+	
 	return;
 }
 

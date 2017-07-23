@@ -6,14 +6,17 @@ VERSION=1.41
 
 all: omp-pmf-train omp-pmf-predict
 
-omp-pmf-train: pmf-train.cpp pmf.h util.o ccd-r1.o pcr.o
-	${CXX} ${CXXFLAGS} -o omp-pmf-train pmf-train.cpp ccd-r1.o util.o pcr.o
+omp-pmf-train: pmf-train.cpp pmf.h util.o ccd-r1.o pcr.o pcrpp.o
+	${CXX} ${CXXFLAGS} -o omp-pmf-train pmf-train.cpp ccd-r1.o util.o pcr.o pcrpp.o
 
 omp-pmf-predict: pmf-predict.cpp pmf.h util.o pcr.o
-	${CXX} ${CXXFLAGS} -o omp-pmf-predict pmf-predict.cpp  util.o pcr.o
+	${CXX} ${CXXFLAGS} -o omp-pmf-predict pmf-predict.cpp  util.o pcr.o pcrpp.o
 
 pcr.o: pcr.cpp util.o
 	${CXX} ${CXXFLAGS} -c -o pcr.o pcr.cpp 
+
+pcrpp.o: pcrpp.cpp util.o
+	$(CXX) $(CXXFLAGS) -c -o pcrpp.o pcrpp.cpp
 
 ccd-r1.o: ccd-r1.cpp util.o
 	${CXX} ${CXXFLAGS} -c -o ccd-r1.o ccd-r1.cpp 
