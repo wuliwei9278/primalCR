@@ -105,33 +105,33 @@ mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double l
 	mat_t g = copy_mat_t(V, lambda);  // g=lambda*V
 	long d1 = X->d1;
 	double* vals = X->vals;
-    long* index = X->index;
+    	long* index = X->index;
 	long* rows = X->rows;
 
-    long start, end, len;
-    double val_j, val_k;
-    double y_ijk, mask, s_jk;	
+    	long start, end, len;
+   	double val_j, val_k;
+   	double y_ijk, mask, s_jk;	
 	double* t;
 	
 	for (long i = 0; i < d1; ++i) {
 		start = *(index + i);
-        end = *(index + i + 1) - 1;
+        	end = *(index + i + 1) - 1;
 		len = end - start + 1;
 		t = new double[len]; 	// t is pointer to array length of len
 		fill(t, t + len, 0.0);
 		for (long j = start; j <= end - 1; ++j) {
-            val_j = *(vals + j);
+            		val_j = *(vals + j);
 			for (long k = j + 1; k <= end; ++k) {
-                val_k = *(vals + k);
+                		val_k = *(vals + k);
 				if (val_j == val_k) {
-                    continue;
-                } else if (val_j > val_k) {
-                    y_ijk = 1.0;
-                } else {
-                    y_ijk = -1.0;
-                }
+                    			continue;
+                		} else if (val_j > val_k) {
+                    			y_ijk = 1.0;
+                		} else {
+                    			y_ijk = -1.0;
+                		}
 				mask = *(m + j) - *(m + k);
-                mask *= y_ijk;
+                		mask *= y_ijk;
 				if (mask < 1.0) {
 					s_jk = 2.0 * (mask - 1);
 					*(t + j - start) += s_jk*y_ijk;
@@ -269,14 +269,15 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	
 	//mat_t g = copy_mat_t(V, lambda);
 	mat_t g = obtain_g(U, V, X, m, lambda);
-	
+	cout << "norm of g " << norm(g) << endl;
 //	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
-
+	
 //	cout << "g is succesfully computed " << g.size() << "," << g[0].size() << endl;  
 	// vectorize_mat function to convert g from mat_t into vec_t 
 	vec_t g_vec;	
 	vectorize_mat(g, g_vec);
 //	cout << norm(g) - norm(g_vec) << endl;
+
  	//assert(norm(g) == norm(g_vec));	
 	//cout << "vectorization is successful, now size is " << g_vec.size() << endl;
 	// solve_delta function to implement conjugate gradient algorithm

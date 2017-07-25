@@ -41,17 +41,31 @@ vec_t get_sorted_mm(double* m, long start, long end, long len,
 	vec_t mm(static_cast<size_t>(len), 0.0);
 	long cc = 0;
 	for (long i = start; i <= end; ++i) {
-		mm[i] = *(m + i);
-		perm_ind[cc] == cc;
+		mm[cc] = *(m + i);
+		perm_ind[cc] = cc;
 		++cc;
 	}
-	assert(perm_ind.size() == len);
+	//cout << "size of perm_ind " << perm_ind.size()<<endl;
+	assert(perm_ind.size() == mm.size());
+/*	for (auto i : perm_ind) {
+		cout << i << ",";
+	}
+*/
 	sort(perm_ind.begin(), perm_ind.end(), 
-		[&mm](long idx1, long idx2) {
+		[&mm](size_t idx1, size_t idx2) {
 			return mm[idx1] < mm[idx2];	
 		}
 	);
+	/*cout << endl;
+	for (long i = 0; i < len; ++i) {
+		cout << *(m + start + i) << ",";
+	}
+	cout << endl;
+	for (auto i : mm) {
+		cout << i << ",";
+	}*/
 	sort(mm.begin(), mm.end());
+	//cout << "returning from get_sorted_mm" <<endl;
 	return mm;	
 }
 
@@ -105,26 +119,43 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 			double* m, double lambda) {
 	mat_t g = copy_mat_t(V, lambda);
 	long d1 = X->d1;
-    double* vals = X->vals;
-    long* index = X->index;
-    long* rows = X->rows;
+    	double* vals = X->vals;
+    	long* index = X->index;
+    	long* rows = X->rows;
 	long start, end, len;
+	long num_levels;
+	vec_t mm_sorted;
+	
 	for (long i = 0; i < d1; ++i) {
+//		cout << "user id " << i << endl;
 		start = *(index + i);
-        end = *(index + i + 1) - 1;
-        len = end - start + 1;
+        	end = *(index + i + 1) - 1;
+        	len = end - start + 1;
+//		cout << start << "," << end << "," << len << endl;
 		// use unordered_set to get rid of duplicate levels
 		// levels are in increasing order
 		vector<long> levels = find_levels(vals, start, end);		
 		// find number of rating levels (ASSUMPTION: a small number)
-		long num_levels = static_cast<long>(levels.size());
+		num_levels = static_cast<long>(levels.size());
+//		cout << "number of levels " << num_levels << endl;
+
 		// sort mm (m for i-th user) 
-		vector<long> perm_ind(len, 0.0);
+		vector<long> perm_ind(len, 0);
 		vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
+	//	cout << "mm is sorted, last element is " << mm_sorted[len - 1] << " perm_ind last element is " 
+	//		<< perm_ind[len - 1] << endl;
+		
 		// get corresponding vals, d2bar in the same order of mm
 		// to be consistent order (useful for future calculation)
 		vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);	
+
+	//	cout << "vals is sorted, last element is " << vals_sorted[len - 1] << endl;
 		vector<long> d2bar_sorted = get_sorted_d2bar(rows, start, len, perm_ind);
+	//	cout << "d2bar is sorted, last element is " << d2bar_sorted[len - 1] << endl;
+/*		for (auto j : d2bar_sorted) {
+			cout << j << ",";
+		}	
+*/			
 		// this to set item ratings to be continuous integers
 		// transformation from original ratings to new ones (preserving order)
 		for (long j = 0; j < len; ++j) {
@@ -155,7 +186,10 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 		
 		// count_right refers to count to the right
 		vector<long> count_right = get_count_right(vals_sorted, num_levels, len);
-		
+/*		cout << endl;
+		for (auto j : count_right) {
+			cout << j << ",";
+		} 	*/
 		for (long j = 0; j < len; ++j) {
 			double now_cut = mm_sorted[j];
 			long now_val = vals_sorted[j];
@@ -173,7 +207,7 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 				now_right += 1;
 			}
 			double c = 0.0;
-			for (long k = 0; k < now_val - 1; ++k) {
+			for (long k = 0; k <= now_val - 1; ++k) {
 				c += (count_right[k] * (mm_sorted[j] - 1.0) - now_right_sum[k]);
 			}
 			for (long k = now_val + 1; k < num_levels; ++k) {
@@ -193,7 +227,7 @@ double* update_V_new(SparseMat* X, double lambda, double stepsize, int r,
 			const mat_t& U, mat_t& V, double& now_obj) {
 	double* m = comp_m_new(U, V, X, r);
 	mat_t g = obtain_g_new(U, V, X, m, lambda);
-	cout << "norm of g" << norm(g) << endl;
+	cout << "norm of g " << norm(g) << endl;
 	return m;
 }
 
@@ -206,13 +240,12 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
     double now_obj = 0.0;
     double totaltime = 0.0;
     cout << "stepsize is " << stepsize << " and ndcg_k is " << ndcg_k << endl;	
-	SparseMat* X = convert(R);
-	SparseMat* XT = convert(T, X->d1, X->d2);
-	long nnz = X->nnz;
+    SparseMat* X = convert(R);
+    SparseMat* XT = convert(T, X->d1, X->d2);
+    long nnz = X->nnz;
 
-	double* m = comp_m_new(U, V, X, r);
-
-	double time = omp_get_wtime();
+    double* m = comp_m_new(U, V, X, r);
+    double time = omp_get_wtime();
     /*now_obj = objective(m, U, V, X, lambda);
 	cout << "Iter 0, objective is " << now_obj << endl;
     pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
@@ -222,7 +255,7 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 */
     int num_iter = 2;
 
-	double total_time = 0.0;
+    double total_time = 0.0;
 
     for (int iter = 1; iter < num_iter; ++iter) {
         time = omp_get_wtime();
@@ -236,7 +269,7 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
         eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
         cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
     	*/
-	}
+    }
 
     delete[] m;
     delete X;
