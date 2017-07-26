@@ -1,6 +1,60 @@
 #include "util.h"
 #include "pmf.h"
 
+
+/*double objective_new(double* m, const mat_t& U, const mat_t& V, 
+		SparseMat* X, double lambda) {
+	double res = 0.0;
+	double norm_U = norm(U);
+    double norm_V = norm(V);
+    res += lambda * (norm_U + norm_V) / 2.0;
+    long d1 = X->d1;
+    double* vals = X->vals;
+    long* index = X->index;
+    long start, end, len;
+	long num_levels;
+	for (long i = 0; i < d1; ++i) {
+		start = *(index + i);
+        end = *(index + i + 1) - 1;
+        len = end - start + 1;
+		vector<long> levels = find_levels(vals, start, end);
+		num_levels = static_cast<long>(levels.size());
+		vector<long> perm_ind(len, 0);
+		vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
+		vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
+		for (long j = 0; j < len; ++j) {
+			for (long k = 0; k < num_levels; ++k) {
+				if (vals_sorted[j] == levels[k]) {
+					vals_sorted[j] = k;
+					break;
+				}
+			}
+		}
+		long now_left = 0;
+		vector<long> count_left(static_cast<size_t>(num_levels), 0);
+		vec_t now_left_sum(static_cast<size_t>(num_levels), 0.0);
+		vec_t now_left_sqsum(static_cast<size_t>(num_levels), 0.0);
+		for (long j = 0; j < len; ++j) {
+			double now_cut = mm_sorted[j];
+			long now_val = vals_sorted[j];
+			long level;
+			while (now_left < len && mm_sorted[now_left] <= now_cut + 1.0) {
+				level = vals_sorted[now_left];
+				now_left_sum[level] += (mm_sorted[now_left] - 1.0);
+				now_left_sqsum[level] += pow(mm_sorted[now_left] - 1.0, 2.0);
+				count_left[level] += 1;
+				now_left += 1;
+			}
+			for (long k = now_val + 1; k < num_levels; ++k) {
+				res += (count_left[k] * pow(now_cut, 2.0) - 2.0 *
+					now_cut * now_left_sum[k] + now_left_sqsum[k]);
+			}
+		}
+	}		
+	return res;
+}
+*/
+
 double* comp_m_new(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
     long d1 = (*X).d1;
     long d2 = (*X).d2;
@@ -93,6 +147,15 @@ vector<long> get_sorted_d2bar(long* rows, long start,
 	return d2bar_sorted;
 }
 
+vec_t get_sorted_b(const vec_t& b, long start, long len, 
+			const vector<long>& perm_ind) {
+	vec_t b_sorted(perm_ind.size(), 0);
+	for (long i = 0; i < len; ++i) {
+		long j = perm_ind[i];
+		b_sorted[i] = b[j]; 
+	}
+	return b_sorted;
+}
 
 vec_t get_levels_sum(const vec_t& mm_sorted, const vector<long> vals_sorted,
 			long num_levels, long len) {
@@ -119,18 +182,17 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 			double* m, double lambda) {
 	mat_t g = copy_mat_t(V, lambda);
 	long d1 = X->d1;
-    	double* vals = X->vals;
-    	long* index = X->index;
-    	long* rows = X->rows;
+    double* vals = X->vals;
+    long* index = X->index;
+    long* rows = X->rows;
 	long start, end, len;
 	long num_levels;
-	vec_t mm_sorted;
 	
 	for (long i = 0; i < d1; ++i) {
 //		cout << "user id " << i << endl;
-		start = *(index + i);
-        	end = *(index + i + 1) - 1;
-        	len = end - start + 1;
+		start = *(index + i);	
+		end = *(index + i + 1) - 1;
+		len = end - start + 1;
 //		cout << start << "," << end << "," << len << endl;
 		// use unordered_set to get rid of duplicate levels
 		// levels are in increasing order
@@ -223,11 +285,193 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 	return g;
 }
 
+
+vec_t compute_Ha_new(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
+              int r, double lambda) {
+	vec_t Ha = copy_vec_t(a, lambda);
+	long d1 = X->d1;
+	double* vals = X->vals;
+	long* rows = X->rows;
+	long* index = X->index;
+	long start, end, len;
+	long a_start, a_end;
+	long Ha_start, Ha_end;
+	long num_levels;
+	for (long i = 0; i < d1; ++i) {
+		start = *(index + i);
+		end = *(index + i + 1) - 1;
+		len = end - start + 1;
+		vec_t b(static_cast<size_t>(len), 0.0);
+		long cc = 0;
+		for (long k = 0; k < len; ++k) {
+			long q = *(rows + start + k);
+			a_start = q * r;
+			a_end = (q + 1) * r - 1;
+			b[cc++] = vec_prod_array(U[i], a, a_start, a_end);
+		}
+		vector<long> levels = find_levels(vals, start, end);
+		num_levels = static_cast<long>(levels.size());
+		vector<long> perm_ind(len, 0);
+		vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
+		vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
+		vector<long> d2bar_sorted = get_sorted_d2bar(rows, start, len, perm_ind);
+		vec_t b_sorted = get_sorted_b(b, start, len, perm_ind);
+		for (long j = 0; j < len; ++j) {
+			for (long k = 0; k < num_levels; ++k) {
+				if (vals_sorted[j] == levels[k]) {
+					vals_sorted[j] = k;
+					break;
+				}
+			}
+		}
+		vec_t levels_sum = get_levels_sum(b_sorted, vals_sorted, num_levels, len);
+		vec_t now_right_sum(levels_sum);
+		vec_t now_left_sum(static_cast<size_t>(num_levels), 0.0);
+		long now_left = 0;
+		long now_right = 0;
+		vector<long> count_left(static_cast<size_t>(num_levels), 0);
+		vector<long> count_right = get_count_right(vals_sorted, num_levels, len);
+		for (long j = 0; j < len; ++j) {
+			double now_cut = mm_sorted[j];
+			long now_val = vals_sorted[j];
+			long level;
+			while (now_left < len && mm_sorted[now_left] <= now_cut + 1.0) {
+				level = vals_sorted[now_left];
+				now_left_sum[level] += b_sorted[now_left];
+				count_left[level] += 1;
+				now_left += 1;
+			}
+			while (now_right < len && mm_sorted[now_right] < now_cut - 1.0) {
+				level = vals_sorted[now_right];
+				now_right_sum[level] -= b_sorted[now_right];
+				count_right[level] -= 1;
+				now_right += 1;
+			}
+			double c = 0.0;
+			for (long k = 0; k <= now_val - 1; ++k) {
+				c += (count_right[k] * b_sorted[j] - now_right_sum[k]);
+			}
+			for (long k = now_val + 1; k < num_levels; ++k) {
+				c += (count_left[k] * b_sorted[j] - now_left_sum[k]);
+			}
+			long p = d2bar_sorted[j];
+			c *= 2.0;
+			Ha_start = p * r;
+			Ha_end = (p + 1) * r - 1;
+			update_vec_subrange(U[i], c, Ha, Ha_start, Ha_end);
+		}
+	}
+    return Ha;
+}
+
+
+vec_t solve_delta_new(const vec_t& g, double* m, const mat_t& U, 
+		SparseMat* X, int r, double lambda) {
+    vec_t delta = vec_t(g.size(), 0.0);
+    vec_t rr = copy_vec_t(g, -1.0);
+    vec_t p = copy_vec_t(g);
+    double err = sqrt(norm(rr)) * 0.01;
+    cout << "break condition " << err << endl;
+	double ttt = omp_get_wtime();
+	for (int k = 1; k <= 10; ++k) {
+        vec_t Hp = compute_Ha_new(p, m, U, X, r, lambda);
+        double prod_p_Hp = dot(p, Hp);
+        double alpha = -1.0 * dot(rr, p) / prod_p_Hp;
+        delta = add_vec_vec(delta, p, 1.0, alpha);
+        rr = add_vec_vec(rr, Hp, 1.0, alpha);
+    	cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
+        if (sqrt(norm(rr)) < err) {
+            break;
+        }
+        double b = dot(rr, Hp) / prod_p_Hp;
+        p = add_vec_vec(rr, p, -1.0, b);
+    }
+    printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
+    return delta;
+}
+
+
+double objective_new(double* m, const mat_t& U, const mat_t& V,
+        SparseMat* X, double lambda) {
+    double res = 0.0;
+    double norm_U = norm(U);
+    double norm_V = norm(V);
+    res += lambda * (norm_U + norm_V) / 2.0;
+    long d1 = X->d1;
+    double* vals = X->vals;
+    long* index = X->index;
+    long start, end, len;
+    long num_levels;
+    for (long i = 0; i < d1; ++i) {
+        start = *(index + i);
+        end = *(index + i + 1) - 1;
+        len = end - start + 1;
+        vector<long> levels = find_levels(vals, start, end);
+        num_levels = static_cast<long>(levels.size());
+        vector<long> perm_ind(len, 0);
+        vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
+        vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
+        for (long j = 0; j < len; ++j) {
+            for (long k = 0; k < num_levels; ++k) {
+                if (vals_sorted[j] == levels[k]) {
+                    vals_sorted[j] = k;
+                    break;
+                }
+            }
+        }
+        long now_left = 0;
+        vector<long> count_left(static_cast<size_t>(num_levels), 0);
+        vec_t now_left_sum(static_cast<size_t>(num_levels), 0.0);
+        vec_t now_left_sqsum(static_cast<size_t>(num_levels), 0.0);
+        for (long j = 0; j < len; ++j) {
+            double now_cut = mm_sorted[j];
+            long now_val = vals_sorted[j];
+            long level;
+            while (now_left < len && mm_sorted[now_left] <= now_cut + 1.0) {
+                level = vals_sorted[now_left];
+                now_left_sum[level] += (mm_sorted[now_left] - 1.0);
+                now_left_sqsum[level] += pow(mm_sorted[now_left] - 1.0, 2.0);
+                count_left[level] += 1;
+                now_left += 1;
+            }
+            for (long k = now_val + 1; k < num_levels; ++k) {
+                res += (count_left[k] * pow(now_cut, 2.0) - 2.0 *
+                    now_cut * now_left_sum[k] + now_left_sqsum[k]);
+            }
+        }
+    }
+    return res;
+}
+
+
 double* update_V_new(SparseMat* X, double lambda, double stepsize, int r, 
 			const mat_t& U, mat_t& V, double& now_obj) {
 	double* m = comp_m_new(U, V, X, r);
 	mat_t g = obtain_g_new(U, V, X, m, lambda);
 	cout << "norm of g " << norm(g) << endl;
+	vec_t g_vec;
+	vectorize_mat(g, g_vec);
+	vec_t delta = solve_delta_new(g_vec, m, U, X, r, lambda);
+	cout << "delta norm is " << norm(delta) << endl;
+	double aatt = omp_get_wtime();
+	double prev_obj = objective_new(m, U, V, X, lambda);
+	mat_t V_new;
+	for (int iter = 0; iter < 20; ++iter) {
+        V_new = copy_mat_t(V, 1.0);
+        mat_substract_vec(delta, stepsize, V_new);
+        delete[] m;
+        m = comp_m_new(U, V_new, X, r);
+        now_obj = objective_new(m, U, V_new, X, lambda);
+		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
+     		<< " New Obj" << now_obj << " stepsize " << stepsize << endl;  
+        if (now_obj < prev_obj) {
+            V = copy_mat_t(V_new, 1.0);
+            break;
+        } else {
+            stepsize /= 2.0;
+        }
+    }
+	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
 	return m;
 }
 

@@ -236,7 +236,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	vec_t p = copy_vec_t(g);
 //	vec_t p = copy_vec_t(rr, -1.0);
 	double err = sqrt(norm(rr)) * 0.01;
-	//cout << "break condition " << err << endl;
+	cout << "break condition " << err << endl;
 	double ttt = omp_get_wtime();
 	for (int k = 1; k <= 10; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
@@ -248,14 +248,14 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 		
 		delta = add_vec_vec(delta, p, 1.0, alpha);
 		rr = add_vec_vec(rr, Hp, 1.0, alpha);
-	//	cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
+		cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
 		if (sqrt(norm(rr)) < err) {
 			break;
 		}
 		double b = dot(rr, Hp) / prod_p_Hp;
 		p = add_vec_vec(rr, p, -1.0, b);
 	}
-	//printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
+	printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
 	return delta;
 }
 
@@ -284,7 +284,7 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	vec_t delta = solve_delta(g_vec, m, U, X, r, lambda);	
 	// reshape function (not needed if implement mat_t substract vec_t function)	
 //	cout << "solve_delta is okay" << endl;	
-
+	cout << "delta norm is " << norm(delta) << endl;
 	double aatt = omp_get_wtime();
 	double prev_obj = objective(m, U, V, X, lambda);	
 	mat_t V_new;
@@ -297,8 +297,8 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 		delete[] m;
 		m = comp_m(U, V_new, X, r);
 		now_obj = objective(m, U, V_new, X, lambda);
-//		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
-//			 << " New Obj" << now_obj << " stepsize " << stepsize << endl;	
+		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
+			 << " New Obj" << now_obj << " stepsize " << stepsize << endl;	
 		if (now_obj < prev_obj) {
 			V = copy_mat_t(V_new, 1.0);
 			break;
@@ -306,7 +306,7 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 			stepsize /= 2.0;
 		}
 	}
-//	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
+	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
 //	printf("ALLALL time: %lf\n", omp_get_wtime()-ttt);
 	return m;
 }
