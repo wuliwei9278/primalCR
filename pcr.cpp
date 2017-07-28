@@ -523,12 +523,14 @@ vec_t update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 	long cc = 0;
 	vec_t g = copy_vec_t(ui, lambda);
 	D = obtain_g_u(i, V, X, m, r, lambda, D, g, cc);
+	cout << "norm of g for u0 is " << norm(g) << endl;
 //	printf("g: ");
 //	for ( int i=0 ; i<g.size() ; i++)
 //		printf("%lf ", g[i]);
 //	printf("\n");
 	double* mm = compute_mm(i, ui, V, X, r);
 	double prev_obj = objective_u(i, mm, ui, X, lambda);
+	cout << "prev obj is " << prev_obj << endl;
 	if (cc == 0 || norm(g) < 0.0001) {
 		obj_u_new = prev_obj;
 		delete[] D;
@@ -548,8 +550,8 @@ vec_t update_u(long i, const mat_t& V, SparseMat* X, double* m, int r,
 		
 		obj_u_new = objective_u(i, mm, ui_new, X, lambda);
 		
-	//	cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
-	//	             << " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
+		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
+		             << " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
 		
 		if (obj_u_new < prev_obj) {
 			break;
@@ -573,8 +575,8 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 	double obj_u_new = 0.0;
 	long d1 = X->d1;
 	mat_t U_new = copy_mat_t(U, 1.0);
-//	for (long i = 0; i < 1; ++i) {
-	for (long i = 0; i < d1; ++i) {
+	for (long i = 0; i < 1; ++i) {
+//	for (long i = 0; i < d1; ++i) {
 		// modify U[i], obj_u_new inside update_u()
 		vec_t ui_new = update_u(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
 		for (int k = 0; k < r; ++k) {
@@ -622,8 +624,8 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
 	cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 
-	int num_iter = 10;
-	
+	//int num_iter = 10;
+	int num_iter = 2;
 	
 	/*
 	mat_t g = copy_mat_t(V);

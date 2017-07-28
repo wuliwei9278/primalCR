@@ -190,7 +190,8 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 	// param.lambda (lambda in julia)
 	// param.stepsize, param.ndcg_k, ...
 	
-	U = read_initial("initial_U"); V = read_initial("initial_V");
+	U = read_initial("initial_U");
+	V = read_initial("initial_V");
 	// k by n
 	//initial(U, X.rows, param.k);
 	//cout << U.size() << " and " << U[0].size() << endl;
@@ -229,7 +230,8 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
     }
 
     load(input_file_name, X, T, false);
-	U = read_initial("initial_U"); V = read_initial("initial_V");
+	U = read_initial("initial_U");
+	V = read_initial("initial_V");
 	cout << "the rank is " << param.k << endl;
     cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;
     cout << X.nnz << endl;
