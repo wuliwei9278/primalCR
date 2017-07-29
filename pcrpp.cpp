@@ -802,7 +802,7 @@ vec_t update_u_new(long i, const mat_t& V, SparseMat* X, double* m, int r,
             stepsize /= 2.0;
         }
     }
-	return ui;	
+	return ui_new;	
 }
 
 
@@ -858,10 +858,11 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
         delete[] m;
         m = update_V_new(X, lambda, stepsize, r, U, V, now_obj);
         U = update_U_new(X, m, lambda, stepsize, r, V, U, now_obj);
-		eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+
         total_time += omp_get_wtime() - time;
-        cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
-		cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+        eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+	cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
+	cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
         eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
         cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
     }

@@ -736,7 +736,7 @@ function update_V(U, V, X, r, d1, d2, lambda, rows, vals, stepsize, cols)
 	infor_list =  precompute(U, V, X, r, d1, d2, lambda, rows, vals, m);
 	infor_list = [];
   	g = obtain_g_new(U, V, X, d1, d2, lambda, rows, vals,m)
-	println("norm of g is ", vecnorm(g)^2)
+#	println("norm of g is ", vecnorm(g)^2)
 	delta = solve_delta(vec(g), m, U, X, r, d1, d2, lambda, rows, vals, infor_list)
 	delta = reshape(delta, size(V))
 	prev_obj = objective(m, U, V, X, d1, lambda, rows, vals)
