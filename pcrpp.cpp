@@ -330,7 +330,7 @@ vec_t solve_delta_new(const vec_t& g, double* m, const mat_t& U,
     vec_t rr = copy_vec_t(g, -1.0);
     vec_t p = copy_vec_t(g);
     double err = sqrt(norm(rr)) * 0.01;
-    cout << "break condition " << err << endl;
+  //  cout << "break condition " << err << endl;
 	double ttt = omp_get_wtime();
 	for (int k = 1; k <= 10; ++k) {
         vec_t Hp = compute_Ha_new(p, m, U, X, r, lambda);
@@ -338,14 +338,14 @@ vec_t solve_delta_new(const vec_t& g, double* m, const mat_t& U,
         double alpha = -1.0 * dot(rr, p) / prod_p_Hp;
         delta = add_vec_vec(delta, p, 1.0, alpha);
         rr = add_vec_vec(rr, Hp, 1.0, alpha);
-    	cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
+    //	cout << "In CG, iteration " << k << " rr value:" << sqrt(norm(rr)) << endl;
         if (sqrt(norm(rr)) < err) {
             break;
         }
         double b = dot(rr, Hp) / prod_p_Hp;
         p = add_vec_vec(rr, p, -1.0, b);
     }
-    printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
+    //printf("AAA Time: %lf\n", omp_get_wtime()-ttt);
     return delta;
 }
 
@@ -407,11 +407,11 @@ double* update_V_new(SparseMat* X, double lambda, double stepsize, int r,
 			const mat_t& U, mat_t& V, double& now_obj) {
 	double* m = comp_m_new(U, V, X, r);
 	mat_t g = obtain_g_new(U, V, X, m, lambda);
-	cout << "norm of g " << norm(g) << endl;
+	//cout << "norm of g " << norm(g) << endl;
 	vec_t g_vec;
 	vectorize_mat(g, g_vec);
 	vec_t delta = solve_delta_new(g_vec, m, U, X, r, lambda);
-	cout << "delta norm is " << norm(delta) << endl;
+	//cout << "delta norm is " << norm(delta) << endl;
 	double aatt = omp_get_wtime();
 	double prev_obj = objective_new(m, U, V, X, lambda);
 	mat_t V_new;
@@ -421,8 +421,8 @@ double* update_V_new(SparseMat* X, double lambda, double stepsize, int r,
         delete[] m;
         m = comp_m_new(U, V_new, X, r);
         now_obj = objective_new(m, U, V_new, X, lambda);
-		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
-     		<< " New Obj" << now_obj << " stepsize " << stepsize << endl;  
+		//cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj 
+     	//	<< " New Obj" << now_obj << " stepsize " << stepsize << endl;  
         if (now_obj < prev_obj) {
             V = copy_mat_t(V_new, 1.0);
             break;
@@ -430,7 +430,7 @@ double* update_V_new(SparseMat* X, double lambda, double stepsize, int r,
             stepsize /= 2.0;
         }
     }
-	printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
+	//printf("LINETIME: %lf\n", omp_get_wtime()-aatt);
 	return m;
 }
 
@@ -673,7 +673,7 @@ infor_ui* precompute_ui(long i, const mat_t& V, SparseMat* X, double* m) {
 
 
 infor_ui* update_infor_ui(long i, const vec_t& ui_new, const mat_t& V,
-			SparseMat* X, int r){
+			SparseMat* X, int r, double* mm){
 	double* vals = X->vals;
     long* index = X->index;
     long* rows = X->rows;
@@ -681,9 +681,11 @@ infor_ui* update_infor_ui(long i, const vec_t& ui_new, const mat_t& V,
     long end = *(index + i + 1) - 1;
     long len = end - start + 1;
 	
-	
+/*	
 	double* mm = new double[len];
-    for (long j = start; j < end; ++j) {
+    for (long j = start; j <= end; ++j) { // should be "<=",
+			//	bug resulting from copying code and inconsistency of end definition
+			// in update_m, compute_mm in pcr.cpp
         long item_id = *(rows + j);
         double res = 0.0;
         for (int k = 0; k < r; ++k) {
@@ -691,11 +693,10 @@ infor_ui* update_infor_ui(long i, const vec_t& ui_new, const mat_t& V,
         }
         *(mm + j - start) = res;
     }
-	vector<long> perm_ind(len, 0);
+*/	vector<long> perm_ind(len, 0);
 	vec_t mm_sorted = get_sorted_mm(mm, 0, len - 1, len, perm_ind);
-	delete[] mm;
 	vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
-    vector<long> d2bar_sorted = get_sorted_d2bar(rows, start, len, perm_ind);
+	vector<long> d2bar_sorted = get_sorted_d2bar(rows, start, len, perm_ind);
 	vector<long> levels = find_levels(vals, start, end);
     long num_levels = static_cast<long>(levels.size());
 	for (long j = 0; j < len; ++j) {
@@ -769,11 +770,11 @@ double objective_u_old(long i, double* mm, const vec_t& ui, SparseMat* X, double
 vec_t update_u_new(long i, const mat_t& V, SparseMat* X, double* m, int r,
   double lambda, double stepsize, const vec_t& ui, double& obj_u_new) {
 	infor_ui* p_infor_ui = precompute_ui(i, V, X, m);
-	cout << p_infor_ui->len << endl;
+//	cout << p_infor_ui->len << endl;
 	vec_t g = obtain_g_u_new(i, V, lambda, ui, p_infor_ui);	
-	cout << "norm of g for u0 is " << norm(g) << endl;
+	//cout << "norm of g for u0 is " << norm(g) << endl;
 	double prev_obj = objective_u_new(i, p_infor_ui, ui, lambda);
-	cout << "prev obj is " << prev_obj << endl;
+	//cout << "prev obj is " << prev_obj << endl;
 	if (norm(g) < 0.0001) {
         obj_u_new = prev_obj;
         return ui;
@@ -783,13 +784,18 @@ vec_t update_u_new(long i, const mat_t& V, SparseMat* X, double* m, int r,
 	double* mm;
     for (int iter = 0; iter < 20; ++iter) {
         ui_new = add_vec_vec(ui, delta, 1.0, -stepsize);
-		infor_ui* p_infor_ui_new = update_infor_ui(i, ui_new, V, X, r);
-        obj_u_new = objective_u_new(i, p_infor_ui_new, ui_new, lambda);
+	//	cout << "ui_new norm is " <<norm(ui_new) << endl;
+		
+		mm = compute_mm_old(i, ui_new, V, X, r);
+		
+		infor_ui* p_infor_ui_new = update_infor_ui(i, ui_new, V, X, r, mm);
+        //cout << "value of i " << i <<endl;
+		obj_u_new = objective_u_new(i, p_infor_ui_new, ui_new, lambda);
         //mm = compute_mm_old(i, ui_new, V, X, r);
 		//obj_u_new = objective_u_old(i, mm, ui_new, X, lambda);
-		//delete[] mm;
-		cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
-			<< " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
+		delete[] mm;
+	//	cout << "Line Search Iter " << iter << " Prev Obj " << prev_obj
+	//		<< " New Obj" << obj_u_new << " stepsize " << stepsize << endl;
 		if (obj_u_new < prev_obj) {
             break;
         } else {
@@ -808,7 +814,7 @@ mat_t update_U_new(SparseMat* X, double* m, double lambda,
     double obj_u_new = 0.0;
     long d1 = X->d1;
     mat_t U_new = copy_mat_t(U, 1.0);
-    for (long i = 0; i < 1; ++i) {
+    for (long i = 0; i < d1; ++i) {
         // modify U[i], obj_u_new inside update_u()
         vec_t ui_new = update_u_new(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
         for (int k = 0; k < r; ++k) {
@@ -836,14 +842,13 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 
     double* m = comp_m_new(U, V, X, r);
     double time = omp_get_wtime();
-    /*now_obj = objective(m, U, V, X, lambda);
+    now_obj = objective_new(m, U, V, X, lambda);
 	cout << "Iter 0, objective is " << now_obj << endl;
     pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
     cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
     eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
     cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
-*/
-    int num_iter = 2;
+    int num_iter = 20;
 
     double total_time = 0.0;
 
@@ -853,12 +858,12 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
         delete[] m;
         m = update_V_new(X, lambda, stepsize, r, U, V, now_obj);
         U = update_U_new(X, m, lambda, stepsize, r, V, U, now_obj);
-        /*
 		eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
-        cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+        total_time += omp_get_wtime() - time;
+        cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
+		cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
         eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
         cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
-    	*/
     }
 
     delete[] m;
