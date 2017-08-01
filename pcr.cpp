@@ -1,27 +1,25 @@
 #include "util.h"
 #include "pmf.h"
+#define kind dynamic,500
 
 double objective(double* m, const mat_t& U, const mat_t& V, SparseMat* X, double lambda) {
 	double res = 0;
 	double norm_U = norm(U);
 	double norm_V = norm(V);
-	res += lambda * (norm_U + norm_V) / 2.0;
 	long d1 = X->d1;
 	double* vals = X->vals;
 	long* index = X->index;
-	long start, end;
-	double val_j, val_k;
-	double y_ijk, mask;
-//	cout << "enter for loop" << endl;
+
+#pragma omp parallel for schedule(kind) reduction(+:res)
 	for (long i = 0; i < d1; ++i) {
-		start = *(index + i);
-		end = *(index + i + 1) - 1;
+		long start = *(index + i);
+		long end = *(index + i + 1) - 1;
 //		cout << i << " " << start << " " << end << endl;
 		for (long j = start; j <= end - 1; ++j) {
-			val_j = *(vals + j);
+			double val_j = *(vals + j);
 			for (long k = j + 1; k <= end; ++k) {
 				//cout << j << "," << k << endl;
-				val_k = *(vals + k);
+				double val_k = *(vals + k);
 				if (val_j == val_k) {
 					continue;
 				} /*else if (val_j > val_k) {
@@ -29,7 +27,7 @@ double objective(double* m, const mat_t& U, const mat_t& V, SparseMat* X, double
 				} else {
 					y_ijk = -1.0;
 				}*/
-				mask = *(m + j) - *(m + k);
+				double mask = *(m + j) - *(m + k);
 //				mask *= y_ijk;
 				if ( val_j < val_k )
 					mask =-mask;
@@ -39,6 +37,8 @@ double objective(double* m, const mat_t& U, const mat_t& V, SparseMat* X, double
 			}
 		}
 	}
+
+	res += lambda * (norm_U + norm_V) / 2.0;
 	return res;
 }
 
@@ -50,12 +50,12 @@ double* comp_m(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
 	long nnz = (*X).nnz;
 	double* m = new double[nnz];
 	fill(m, m + nnz, 0.0);
-	long usr_id, item_id;
-	double dot_res;
+
+#pragma omp parallel for schedule(kind)
 	for (long i = 0; i < nnz; ++i) {
-		usr_id = (*X).cols[i];
-		item_id = (*X).rows[i];
-		dot_res = 0;
+		long usr_id = (*X).cols[i];
+		long item_id = (*X).rows[i];
+		double dot_res = 0;
 		for (int j = 0; j < r; ++j) {
 			dot_res = dot_res + U[usr_id][j] * V[item_id][j];
 		}
@@ -107,33 +107,35 @@ mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double l
 	double* vals = X->vals;
     	long* index = X->index;
 	long* rows = X->rows;
+	int r = g[0].size();
+	long d2 = g.size();
 
-    	long start, end, len;
-   	double val_j, val_k;
-   	double y_ijk, mask, s_jk;	
-	double* t;
-	
+	int num_threads = omp_get_max_threads();
+//	vector<mat_t> g_list(num_threads, mat_t(d2, vec_t(r, 0)));
+
+
+#pragma omp parallel for schedule(kind) 
 	for (long i = 0; i < d1; ++i) {
-		start = *(index + i);
-        	end = *(index + i + 1) - 1;
-		len = end - start + 1;
-		t = new double[len]; 	// t is pointer to array length of len
+		int rank = omp_get_thread_num();
+		long start = *(index + i);
+      	long end = *(index + i + 1) - 1;
+		long len = end - start + 1;
+		double *t = new double[len]; 	// t is pointer to array length of len
 		fill(t, t + len, 0.0);
 		for (long j = start; j <= end - 1; ++j) {
-            		val_j = *(vals + j);
+            double val_j = *(vals + j);
 			for (long k = j + 1; k <= end; ++k) {
-                		val_k = *(vals + k);
+                	double val_k = *(vals + k);
+					double y_ijk = 1.0;
 				if (val_j == val_k) {
                     			continue;
-                		} else if (val_j > val_k) {
-                    			y_ijk = 1.0;
-                		} else {
+                		} else if (val_j < val_k) {
                     			y_ijk = -1.0;
                 		}
-				mask = *(m + j) - *(m + k);
+				double mask = *(m + j) - *(m + k);
                 		mask *= y_ijk;
 				if (mask < 1.0) {
-					s_jk = 2.0 * (mask - 1);
+					double s_jk = 2.0 * (mask - 1);
 					*(t + j - start) += s_jk*y_ijk;
 					*(t + k - start) -= s_jk*y_ijk;
 				}
@@ -143,13 +145,21 @@ mat_t obtain_g(const mat_t& U, const mat_t& V, SparseMat* X, double* m, double l
 			long j = *(rows + start + k);
 			double c = *(t + k); 
 			// we want g[j,:] += c * U[i,:]
-			update_mat_add_vec(U[i], c, j, g);
-//			printf("%d %lf\n", j, c);
+//			update_mat_add_vec(U[i], c, j, g);
+			for ( int k=0 ; k<r ; k++ )
+#pragma omp atomic
+				g[j][k] += c*U[i][k];
+//			update_mat_add_vec(U[i], c, j, g_list[rank]);
 		}
 		
 		delete[] t;
 	}
-	t = nullptr;
+/*		for ( int i=0 ; i<d2 ; i++ )
+			for ( int k=0 ; k<r ; k++ )
+				for ( int ii=0 ; ii<num_threads ; ii++)
+					g[i][k]+= g_list[ii][i][k];
+					*/
+//	t = nullptr;
 	return g;
 }
 
@@ -163,47 +173,48 @@ vec_t compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 	double* vals = X->vals;
 	long* rows = X->rows;
 	long* index = X->index;
-	long start, end, len;	// start, end, denotes starting/ending index in indexs array for i-th user
+//	long start, end, len;	// start, end, denotes starting/ending index in indexs array for i-th user
 	// a_start, a_end denotes starting/ending index in array 'a' for i-th user, a is size of d2*r
-	long a_start, a_end;	
-	long Ha_start, Ha_end;
-	double val_j, val_k;
-	double mask, ddd;
-	int y_ijk;
-	double* b;
-	double* cpvals;
+//	long a_start, a_end;	
+//	long Ha_start, Ha_end;
+//	double val_j, val_k;
+//	double mask, ddd;
+//	int y_ijk;
+//	double* b;
+//	double* cpvals;
 	r = static_cast<long>(r);	
 
+#pragma omp parallel for schedule(kind) 
 	for (long i = 0; i < d1; ++i) {
-		start = *(index + i);
-		end = *(index + i + 1) - 1;
-		len = end - start + 1;
-		b = new double[len];  // to precompute ui*a
+		long start = *(index + i);
+		long end = *(index + i + 1) - 1;
+		long len = end - start + 1;
+		double *b = new double[len];  // to precompute ui*a
 		long cc = 0;
 		for (long k = 0; k < len; ++k) {
 			long q = *(rows + start + k);
-			a_start = q * r;
-			a_end = (q + 1) * r - 1;
+			long a_start = q * r;
+			long a_end = (q + 1) * r - 1;
 			b[cc++] = vec_prod_array(U[i], a, a_start, a_end);
 		}
-		cpvals = new double[len];
+		double *cpvals = new double[len];
 		fill(cpvals, cpvals + len, 0.0);
 		for (long j = start; j < end; ++j) {
-			val_j = *(vals + j);
+			double val_j = *(vals + j);
 
 			for (long k = j + 1; k <= end; ++k) {
-                val_k = *(vals + k);
+                double val_k = *(vals + k);
                 
 				if (val_j == val_k) {
                     continue;
                 } 
                 
-				mask = *(m + j) - *(m + k);
+				double mask = *(m + j) - *(m + k);
 				if ( val_k > val_j )
 					mask = -mask;
                 
 				if (mask < 1.0) {
-                    ddd = *(b + j - start) - *(b + k - start);
+                    double ddd = *(b + j - start) - *(b + k - start);
 					ddd *= 2;
 
                     *(cpvals + j - start) += ddd;
@@ -214,15 +225,20 @@ vec_t compute_Ha(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 		for (long k = 0; k < len; ++k) {
             long p = *(rows + start + k);
             double c = *(cpvals + k);
-			Ha_start = p * r;
-			Ha_end = (p + 1) * r - 1;
-			update_vec_subrange(U[i], c, Ha, Ha_start, Ha_end);	
+			long Ha_start = p * r;
+			long Ha_end = (p + 1) * r - 1;
+			//
+			//update_vec_subrange(U[i], c, Ha, Ha_start, Ha_end);
+			//
+			for ( long j=0 ; j<U[i].size(); j++)
+#pragma omp atomic
+				Ha[Ha_start+j] += c*U[i][j];
         }	
 		delete[] b;
 		delete[] cpvals;
+		b = nullptr;
+		cpvals = nullptr;
 	}
-	b = nullptr;
-	cpvals = nullptr;
 	return Ha;
 }
 
@@ -240,6 +256,7 @@ vec_t solve_delta(const vec_t& g, double* m, const mat_t& U, SparseMat* X, int r
 	double ttt = omp_get_wtime();
 	for (int k = 1; k <= 10; ++k) {
 		//vec_t Hp = copy_vec_t(p, lambda);
+		double ttaa = omp_get_wtime();
 		vec_t Hp = compute_Ha(p, m, U, X, r, lambda);
 
 		double prod_p_Hp = dot(p, Hp);
@@ -269,6 +286,7 @@ double* update_V(SparseMat* X, double lambda, double stepsize, int r, const mat_
 	
 	//mat_t g = copy_mat_t(V, lambda);
 	mat_t g = obtain_g(U, V, X, m, lambda);
+//	printf("obtain_g_time %lf\n", omp_get_wtime()-time);
 //	cout << "norm of g " << norm(g) << endl;
 //	cout << "time for obtain_g function takes " << omp_get_wtime() - time << endl;
 	
@@ -571,11 +589,11 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 	// update U while fixing V
 	//cout << "entering update_U" <<endl;
 	double total_obj_new = 0.0;
-	total_obj_new += lambda / 2.0 * norm(V);
 	double obj_u_new = 0.0;
 	long d1 = X->d1;
 	mat_t U_new = copy_mat_t(U, 1.0);
 //	for (long i = 0; i < 1; ++i) {
+#pragma omp parallel for schedule(kind) reduction(+:total_obj_new)
 	for (long i = 0; i < d1; ++i) {
 		// modify U[i], obj_u_new inside update_u()
 		vec_t ui_new = update_u(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
@@ -585,6 +603,8 @@ mat_t update_U(SparseMat* X, double* m, double lambda, double stepsize, int r, c
 		}
 		total_obj_new += obj_u_new;
 	}
+
+	total_obj_new += lambda / 2.0 * norm(V);
 	now_obj = total_obj_new;
 	return U_new;
 
@@ -606,21 +626,31 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	// U: r by d1 dense
 	// V: r by d2 dense
 	// X ~ U^T * V
-	
+
+	omp_set_num_threads(param.threads);
+	cout << "using " << omp_get_max_threads() << " threads. " << endl;
+
 	SparseMat* X = convert(R);  // remember to free memory X in the end by delete X; set X = NULL;
 	SparseMat* XT = convert(T, X->d1, X->d2);
 	long nnz = (*X).nnz;
-	//cout << nnz << endl;
+	cout << nnz << endl;
+	double ttt = omp_get_wtime();
 	double* m = comp_m(U, V, X, r);
+//	printf("aaa time %lf\n", omp_get_wtime()-ttt);
 
 //	printf("m[5]: %lf\n", m[4]);
 
 	double time = omp_get_wtime();
 	now_obj = objective(m, U, V, X, lambda);
+//	printf("time for obj %lf\n", omp_get_wtime()-time);
 	
 	cout << "Iter 0, objective is " << now_obj << endl;
+
+	double time1 = omp_get_wtime();
 	pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
 	cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+	printf("time for training error is %lf\n", omp_get_wtime()-time);
+
 	eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
 	cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 
@@ -643,6 +673,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 		// need to free space pointer m points to before pointing it to another memory
 		delete[] m;
 		m = update_V(X, lambda, stepsize, r, U, V, now_obj);
+//		printf("update_V_time %lf\n", omp_get_wtime()-time);
 		//cout << "Iter " << iter << " update_V " << "Time " << omp_get_wtime() - time << " Objective is " << now_obj << endl;
 		//m = comp_m(U, V, X, r);
 		U = update_U(X, m, lambda, stepsize, r, V, U, now_obj);
