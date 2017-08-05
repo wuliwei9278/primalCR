@@ -1,6 +1,6 @@
 #include "util.h"
 #include "pmf.h"
-
+#define kind dynamic,500
 
 struct infor_ui {
 	//vector<long> levels;
@@ -20,12 +20,12 @@ double* comp_m_new(const mat_t& U, const mat_t& V, SparseMat* X, int r) {
     long nnz = (*X).nnz;
     double* m = new double[nnz];
     fill(m, m + nnz, 0.0);
-    long usr_id, item_id;
-    double dot_res;
+
+#pragma omp parallel for schedule(kind)
     for (long i = 0; i < nnz; ++i) {
-        usr_id = (*X).cols[i];
-        item_id = (*X).rows[i];
-        dot_res = 0;
+        long usr_id = (*X).cols[i];
+        long item_id = (*X).rows[i];
+        double dot_res = 0;
         for (int j = 0; j < r; ++j) {
             dot_res = dot_res + U[usr_id][j] * V[item_id][j];
         }
@@ -144,20 +144,20 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
     double* vals = X->vals;
     long* index = X->index;
     long* rows = X->rows;
-	long start, end, len;
-	long num_levels;
+	int r = g[0].size();
 	
+#pragma omp parallel for schedule(kind)
 	for (long i = 0; i < d1; ++i) {
 //		cout << "user id " << i << endl;
-		start = *(index + i);	
-		end = *(index + i + 1) - 1;
-		len = end - start + 1;
+		long start = *(index + i);	
+		long end = *(index + i + 1) - 1;
+		long len = end - start + 1;
 //		cout << start << "," << end << "," << len << endl;
 		// use unordered_set to get rid of duplicate levels
 		// levels are in increasing order
 		vector<long> levels = find_levels(vals, start, end);		
 		// find number of rating levels (ASSUMPTION: a small number)
-		num_levels = static_cast<long>(levels.size());
+		long num_levels = static_cast<long>(levels.size());
 //		cout << "number of levels " << num_levels << endl;
 
 		// sort mm (m for i-th user) 
@@ -236,7 +236,11 @@ mat_t obtain_g_new(const mat_t& U, const mat_t& V, SparseMat* X,
 			}
 			long p = d2bar_sorted[j];
 			c *= 2.0;
-			update_mat_add_vec(U[i], c, p, g);
+//			update_mat_add_vec(U[i], c, p, g);
+			for (long k = 0; k < r; ++k) {
+#pragma omp atomic
+				g[p][k] += c * U[i][k];
+			}
 
 		}
 	
@@ -252,24 +256,21 @@ vec_t compute_Ha_new(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 	double* vals = X->vals;
 	long* rows = X->rows;
 	long* index = X->index;
-	long start, end, len;
-	long a_start, a_end;
-	long Ha_start, Ha_end;
-	long num_levels;
+#pragma omp parallel for schedule(kind)
 	for (long i = 0; i < d1; ++i) {
-		start = *(index + i);
-		end = *(index + i + 1) - 1;
-		len = end - start + 1;
+		long start = *(index + i);
+		long end = *(index + i + 1) - 1;
+		long len = end - start + 1;
 		vec_t b(static_cast<size_t>(len), 0.0);
 		long cc = 0;
 		for (long k = 0; k < len; ++k) {
 			long q = *(rows + start + k);
-			a_start = q * r;
-			a_end = (q + 1) * r - 1;
+			long a_start = q * r;
+			long a_end = (q + 1) * r - 1;
 			b[cc++] = vec_prod_array(U[i], a, a_start, a_end);
 		}
 		vector<long> levels = find_levels(vals, start, end);
-		num_levels = static_cast<long>(levels.size());
+		long num_levels = static_cast<long>(levels.size());
 		vector<long> perm_ind(len, 0);
 		vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
 		vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
@@ -315,9 +316,16 @@ vec_t compute_Ha_new(const vec_t& a, double* m, const mat_t& U, SparseMat* X,
 			}
 			long p = d2bar_sorted[j];
 			c *= 2.0;
-			Ha_start = p * r;
-			Ha_end = (p + 1) * r - 1;
-			update_vec_subrange(U[i], c, Ha, Ha_start, Ha_end);
+			long Ha_start = p * r;
+			long Ha_end = (p + 1) * r - 1;
+//			update_vec_subrange(U[i], c, Ha, Ha_start, Ha_end);
+
+			for ( long ii=0 ; ii<r ; ii++) {
+				double tmp = c*U[i][ii];
+#pragma omp atomic
+				Ha[Ha_start+ii] += tmp;
+			}
+
 		}
 	}
     return Ha;
@@ -355,18 +363,17 @@ double objective_new(double* m, const mat_t& U, const mat_t& V,
     double res = 0.0;
     double norm_U = norm(U);
     double norm_V = norm(V);
-    res += lambda * (norm_U + norm_V) / 2.0;
     long d1 = X->d1;
     double* vals = X->vals;
     long* index = X->index;
-    long start, end, len;
-    long num_levels;
+
+#pragma omp parallel for schedule(kind) reduction(+:res)
     for (long i = 0; i < d1; ++i) {
-        start = *(index + i);
-        end = *(index + i + 1) - 1;
-        len = end - start + 1;
+        long start = *(index + i);
+        long end = *(index + i + 1) - 1;
+        long len = end - start + 1;
         vector<long> levels = find_levels(vals, start, end);
-        num_levels = static_cast<long>(levels.size());
+        long num_levels = static_cast<long>(levels.size());
         vector<long> perm_ind(len, 0);
         vec_t mm_sorted = get_sorted_mm(m, start, end, len, perm_ind);
         vector<long> vals_sorted = get_sorted_vals(vals, start, len, perm_ind);
@@ -399,6 +406,8 @@ double objective_new(double* m, const mat_t& U, const mat_t& V,
             }
         }
     }
+
+    res += lambda * (norm_U + norm_V) / 2.0;
     return res;
 }
 
@@ -810,10 +819,10 @@ mat_t update_U_new(SparseMat* X, double* m, double lambda,
 			double stepsize, int r, const mat_t& V,
                 const mat_t& U, double& now_obj) {
     double total_obj_new = 0.0;
-    total_obj_new += lambda / 2.0 * norm(V);
     double obj_u_new = 0.0;
     long d1 = X->d1;
     mat_t U_new = copy_mat_t(U, 1.0);
+#pragma omp parallel for schedule(kind) reduction(+:total_obj_new)
     for (long i = 0; i < d1; ++i) {
         // modify U[i], obj_u_new inside update_u()
         vec_t ui_new = update_u_new(i, V, X, m, r, lambda, stepsize, U[i], obj_u_new);
@@ -822,6 +831,8 @@ mat_t update_U_new(SparseMat* X, double* m, double lambda,
         }
         total_obj_new += obj_u_new;
     }
+
+    total_obj_new += lambda / 2.0 * norm(V);
     now_obj = total_obj_new;
     return U_new;
 }
@@ -840,8 +851,10 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
     SparseMat* XT = convert(T, X->d1, X->d2);
     long nnz = X->nnz;
 
+	omp_set_num_threads(param.threads);
+	cout << "using " << omp_get_max_threads() << " threads. " << endl;
+
     double* m = comp_m_new(U, V, X, r);
-    double time = omp_get_wtime();
     now_obj = objective_new(m, U, V, X, lambda);
 	cout << "Iter 0, objective is " << now_obj << endl;
     pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
@@ -853,7 +866,7 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
     double total_time = 0.0;
 
     for (int iter = 1; iter < num_iter; ++iter) {
-        time = omp_get_wtime();
+        double time = omp_get_wtime();
         // need to free space pointer m points to before pointing it to another memory
         delete[] m;
         m = update_V_new(X, lambda, stepsize, r, U, V, now_obj);
