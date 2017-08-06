@@ -9,19 +9,18 @@ void exit_with_help()
 	printf(
 	"Usage: omp-pmf-train [options] data_dir [model_filename]\n"
 	"options:\n"
-	"    -s type : set type of solver (default 0)\n"    
-	"    	 0 -- CCDR1 with fundec stopping condition\n"    
+	"    -s type : set type of solver (default 2)\n"    
+//	"    	 0 -- CCDR1 with fundec stopping condition\n"    
 	"    	 1 -- PirmalCR\n"    
 	"    	 2 -- PrimalCR++\n"    
 	"    -k rank : set the rank (default 10)\n"    
 	"    -n threads : set the number of threads (default 4)\n"    
-	"    -l lambda : set the regularization parameter lambda (default 0.1)\n"    
-	"    -t max_iter: set the number of iterations (default 5)\n"    
-	"    -T max_iter: set the number of inner iterations used in CCDR1 (default 5)\n"    
-	"    -e epsilon : set inner termination criterion epsilon of CCDR1 (default 1e-3)\n"     
-	"    -p do_predict: do prediction or not (default 0)\n"    
-	"    -q verbose: show information or not (default 0)\n"
-	"    -N do_nmf: do nmf (default 0)\n"
+	"    -l lambda : set the regularization parameter lambda (default 5000)\n"    
+	"    -t max_iter: set the number of iterations (default 10)\n"    
+//	"    -T max_iter: set the number of inner iterations used in CCDR1 (default 5)\n"    
+//	"    -e epsilon : set inner termination criterion epsilon of CCDR1 (default 1e-3)\n"     
+	"    -p do_predict: compute training/testing error & NDCG at each iteration or not (default 1)\n"    
+//	"    -q verbose: show information or not (default 0)\n"
 	);
 	exit(1);
 }
@@ -198,8 +197,7 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
 	initial(V, X.cols, param.k);
 	cout << "the rank is " << param.k << endl;
 	cout << "the number of rows is " << X.rows << " and the number of cols is " << X.cols << endl;
-	cout << X.nnz << endl;	
-	cout << "starts!" << endl;
+	cout << "nnz: " << X.nnz << endl;	
 	
     double time = omp_get_wtime();
     pcr(X, U, V, T, param);

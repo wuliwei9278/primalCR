@@ -29,10 +29,10 @@ class parameter {
 			stepsize = 1.0;
 			ndcg_k = 10;
 
-			solver_type = CCDR1;
+			solver_type = PCRPP;
 			k = 10;
 			rho = 1e-3;
-			maxiter = 5;
+			maxiter = 10;
 			maxinneriter = 5;
 			lambda = 5000;
 			threads = 4;
@@ -42,7 +42,7 @@ class parameter {
 			betadown = 0.5;
 			num_blocks = 30;  // number of blocks used in dsgd
 			lrate_method = BOLDDRIVER;
-			do_predict = 0;
+			do_predict = 1;
 			verbose = 0;
 			do_nmf = 0;
 		}

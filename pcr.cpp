@@ -621,7 +621,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	int ndcg_k = param.ndcg_k;
 	double now_obj;
 	double totaltime = 0.0;
-	cout << "stepsize is " << stepsize << " and ndcg_k is " << ndcg_k << endl;
+	cout << "running PrimalCR ndcg_k is " << ndcg_k << endl;
 	// X: d1 by d2 sparse matrix, ratings
 	// U: r by d1 dense
 	// V: r by d2 dense
@@ -633,7 +633,6 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	SparseMat* X = convert(R);  // remember to free memory X in the end by delete X; set X = NULL;
 	SparseMat* XT = convert(T, X->d1, X->d2);
 	long nnz = (*X).nnz;
-	cout << nnz << endl;
 	double ttt = omp_get_wtime();
 	double* m = comp_m(U, V, X, r);
 //	printf("aaa time %lf\n", omp_get_wtime()-ttt);
@@ -643,16 +642,17 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	double time = omp_get_wtime();
 	now_obj = objective(m, U, V, X, lambda);
 //	printf("time for obj %lf\n", omp_get_wtime()-time);
-	
-	cout << "Iter 0, objective is " << now_obj << endl;
 
-	double time1 = omp_get_wtime();
-	pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
-	cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
-	printf("time for training error is %lf\n", omp_get_wtime()-time);
-
-	eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
-	cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+//	printf("Iter 0 time 0 obj %lf\n", now_obj);
+	cout << "Iter 0 time 0 obj " << now_obj << endl;
+	if (param.do_predict) {
+		pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+		cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+	}
+	if ( T.nnz !=0 and param.do_predict) {
+		pair<double,double> eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
+		cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+	}
 
 	//int num_iter = 10;
 	int num_iter = 20;
@@ -681,11 +681,17 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 		//cout << (now_obj - objective(m, U, V, X, lambda)) << endl;
 		//cout << "Iter " << iter << " update_U " << "Time " << omp_get_wtime() - time << " Obj " << now_obj << endl;
 		total_time += omp_get_wtime() - time;
-		cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
-		eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
-		cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
-		eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
-		cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+		cout << "Iter " << iter << " time " << total_time << " obj " << now_obj << endl;
+//		cout << "Iter " << iter << ": Total Time " << total_time << " Obj " << now_obj << endl;
+	
+		if (param.do_predict) {
+			pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, X, ndcg_k);
+			cout << "(Training) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+		}
+		if ( T.nnz!=0 and param.do_predict) {
+			pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
+			cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
+		}
 	}
 	
 	delete[] m;
