@@ -33,7 +33,8 @@ The input format of the training data is a directory containing a file called "m
           1st: m n
           2nd: num_training_ratings training_file_name
           3rd: num_test_ratings test_file_name
-    See ml1m/ for a concrete example.
+
+See ml1m/ for a concrete example.
 
 ## Instructions on how to run the code:
 
@@ -41,17 +42,18 @@ Run each program without arguments to show the detailed usage:
 
 $ ./omp-pmf-train
 
-Usage: omp-pmf-train [options] data_dir [model_filename]
-options:
-    -s type : set type of solver (default 2)
-	     1 -- PirmalCR
-         2 -- PrimalCR++
-    -k rank : set the rank (default 10)
-	-n threads : set the number of threads (default 4)
-	-l lambda : set the regularization parameter lambda (default 5000)
-	-t max_iter: set the number of iterations (default 10)
-	-p do_predict: compute training/testing error & NDCG at each iteration or not (default 1)
+	Usage: omp-pmf-train [options] data_dir [model_filename]
+	options:
+	    -s type : set type of solver (default 2)
+		     1 -- PirmalCR
+	         2 -- PrimalCR++
+	    -k rank : set the rank (default 10)
+		-n threads : set the number of threads (default 4)
+		-l lambda : set the regularization parameter lambda (default 5000)
+		-t max_iter: set the number of iterations (default 10)
+		-p do_predict: compute training/testing error & NDCG at each iteration or not (default 1)
 
 $ ./omp-pmf-predict
-Usage: omp-pmf-predict test_file model output_file
+
+	Usage: omp-pmf-predict test_file model output_file
 
