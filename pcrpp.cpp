@@ -866,11 +866,11 @@ void pcrpp(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	    pair<double, double> eval_res = compute_pairwise_error_ndcg(U, V, XT, ndcg_k);
 	    cout << "(Testing) pairwise error is " << eval_res.first << " and ndcg is " << eval_res.second << endl;
 	}
-    int num_iter = 20;
+    int num_iter = param.maxiter;
 
     double total_time = 0.0;
 
-    for (int iter = 1; iter < num_iter; ++iter) {
+    for (int iter = 1; iter <= num_iter; ++iter) {
         double time = omp_get_wtime();
         // need to free space pointer m points to before pointing it to another memory
         delete[] m;

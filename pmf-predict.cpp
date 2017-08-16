@@ -60,11 +60,8 @@ int main(int argc, char* argv[]){
 		for(int t = 0; t < rank; t++)
 			pred_v += W[i-1][t] * H[j-1][t];
 		num_insts ++;
-		rmse += (pred_v - v)*(pred_v - v);
 		fprintf(output_fp, "%lf\n", pred_v);
 	}
-	rmse = sqrt(rmse/num_insts);
-	printf("test RMSE = %g\n", rmse);
 
 	return 0;
 }

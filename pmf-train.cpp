@@ -204,8 +204,16 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
     printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
 
     if(model_fp) {
-        save_mat_t(U,model_fp,false);
-        save_mat_t(V,model_fp,false);
+		mat_t UT(param.k, vec_t(U.size()));
+		for ( int ii=0 ; ii<U.size() ; ii++ )
+			for ( int jj=0 ; jj<param.k ; jj++ )
+				UT[jj][ii] = U[ii][jj];
+		mat_t VT(param.k, vec_t(V.size()));
+		for ( int ii=0 ; ii<V.size() ; ii++ )
+			for ( int jj=0 ; jj<param.k ; jj++ )
+				VT[jj][ii] = V[ii][jj];
+        save_mat_t(UT,model_fp,false);
+        save_mat_t(VT,model_fp,false);
         fclose(model_fp);
     }
     
@@ -243,8 +251,17 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
     printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
 
     if(model_fp) {
-        save_mat_t(U,model_fp,false);
-        save_mat_t(V,model_fp,false);
+		mat_t UT(param.k, vec_t(U.size()));
+		for ( int ii=0 ; ii<U.size() ; ii++ )
+			for ( int jj=0 ; jj<param.k ; jj++ )
+				UT[jj][ii] = U[ii][jj];
+		mat_t VT(param.k, vec_t(V.size()));
+		for ( int ii=0 ; ii<V.size() ; ii++ )
+			for ( int jj=0 ; jj<param.k ; jj++ )
+				VT[jj][ii] = V[ii][jj];
+
+        save_mat_t(UT,model_fp,false);
+        save_mat_t(VT,model_fp,false);
         fclose(model_fp);
     }
 

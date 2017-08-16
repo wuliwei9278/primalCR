@@ -655,7 +655,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	}
 
 	//int num_iter = 10;
-	int num_iter = 20;
+	int num_iter = param.maxiter;
 	
 	/*
 	mat_t g = copy_mat_t(V);
@@ -668,7 +668,7 @@ void pcr(smat_t& R, mat_t& U, mat_t& V, testset_t& T, parameter& param) {
 	
 	double total_time = 0.0;
 	
-	for (int iter = 1; iter < num_iter; ++iter) {
+	for (int iter = 1; iter <= num_iter; ++iter) {
 		time = omp_get_wtime();
 		// need to free space pointer m points to before pointing it to another memory
 		delete[] m;
