@@ -1,5 +1,6 @@
 #include "util.h"
 #include "pmf.h"
+#include <fstream>
 #include <cstring>
 
 bool with_weights;
@@ -202,6 +203,28 @@ void run_pcr(parameter &param, const char* input_file_name, const char* model_fi
     double time = omp_get_wtime();
     pcr(X, U, V, T, param);
     printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
+	
+	cout << "U matrix of size " << U.size() << ", " << param.k << endl;
+    ofstream myfile;
+    myfile.open("U" + to_string(static_cast<int>(param.lambda)) + ".txt");
+    for (long i = 0; i < U.size(); ++i) {
+        for (long j = 0; j < param.k; ++j) {
+            myfile << U[i][j];
+            if (j < param.k - 1) myfile << " ";
+            else myfile << "\n";
+        }
+    }
+    myfile.close();
+    myfile.open("V" + to_string(static_cast<int>(param.lambda)) + ".txt");
+    cout << "V matrix of size " << V.size() << ", " << param.k << endl;
+    for (long i = 0; i < V.size(); ++i) {
+        for (long j = 0; j < param.k; ++j) {
+            myfile << V[i][j];
+            if (j < param.k - 1) myfile << " ";
+            else myfile << "\n";
+        }
+    }
+    myfile.close();
 
     if(model_fp) {
 		mat_t UT(param.k, vec_t(U.size()));
@@ -249,6 +272,27 @@ void run_pcrpp(parameter &param, const char* input_file_name, const char* model_
 	double time = omp_get_wtime();
     pcrpp(X, U, V, T, param);
     printf("Wall-time: %lg secs\n", omp_get_wtime() - time);
+    cout << "U matrix of size " << U.size() << ", " << param.k << endl;
+    ofstream myfile;
+    myfile.open("U.txt");
+    for (long i = 0; i < U.size(); ++i) {
+        for (long j = 0; j < param.k; ++j) {
+            myfile << U[i][j];
+            if (j < param.k - 1) myfile << " ";
+            else myfile << "\n";
+        }
+    }
+    myfile.close();
+    myfile.open("V.txt");
+    cout << "V matrix of size " << V.size() << ", " << param.k << endl;
+    for (long i = 0; i < V.size(); ++i) {
+        for (long j = 0; j < param.k; ++j) {
+            myfile << V[i][j];
+            if (j < param.k - 1) myfile << " ";
+            else myfile << "\n";
+        }
+    }
+    myfile.close();
 
     if(model_fp) {
 		mat_t UT(param.k, vec_t(U.size()));
